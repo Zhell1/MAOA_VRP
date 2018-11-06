@@ -157,7 +157,6 @@ C_Graph* parseVRPfile(string filename)
 			a->num = k;
 			noeudi = &(mygraph->V_nodes[i]); // V_nodes[i] because we use int i = 0 to start
 			noeudj = &(mygraph->V_nodes[j]);
-			cout << noeudi->num << "-" << noeudj->num << "\t";
 			a->v1 = noeudi->num -1; // OK VERIF
 			a->v2 = noeudj->num -1; // OK VERIF
 			a->length = EUC_2D(noeudi->x, noeudi->y, noeudj->x, noeudj->y); // why not ? it's cheap
@@ -165,6 +164,8 @@ C_Graph* parseVRPfile(string filename)
 			mygraph->V_nodes[j].L_adjLinks.push_back(a); //si on met dans les sens  = version non dirigée Undirected, sinon changer, voir code dans C_graph.cpp
 			mygraph->V_links[k] = a;
 			k++;
+
+			cout << noeudi->num << "-" << noeudj->num << "(size " << a->length << ")\t";
 		}
 		cout << endl;
 	}
@@ -182,11 +183,16 @@ C_Graph* parseVRPfile(string filename)
 
 	cout << "*** FILE CLOSED" << endl;
 
+	//test C_node->getDistanceFrom()
+	//cout << "test getdistance from node_" << mygraph->V_nodes[0].num << " and node_2" << endl;
+	//cout << "\t\t\t => found distance = " << mygraph->V_nodes[0].getDistanceFrom(2) << endl;
+	// OK CA MARCHE
+
 	return mygraph;
 }
 
 
 //calcule la distance euclidienne dans un monde en 2D
 float EUC_2D (int x1, int y1, int x2, int y2){
-	return sqrt((x1 - x2)^2 + (y1 - y2)^2);
+	return sqrt((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2)); //this is faster than pow(a,b)
 }

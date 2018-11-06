@@ -17,11 +17,44 @@ using namespace std;
 
 /***************** VRP ADDED ****************************/
 
+// you must give an id between [1, nbNodes], not starting at 0  !!!
 C_node* C_Graph::get_node_by_id(int id) {
     return &(this->V_nodes[id-1]); 
     //should work if created in the right order
 }
 
+float C_link::getDistance(){
+  return this->length;
+}
+
+int C_link::getidv1(){
+  return (this->v1 + 1) ;
+}
+int C_link::getidv2(){
+  return (this->v2 + 1) ;
+}
+
+//OK VERIFIE
+// you must give an id between [1, nbNodes], not starting at 0  !!!
+// this function only works if C_link.length was created with the right calculated length
+// it doesn't recalculates it ! (to be faster)
+float C_node::getDistanceFrom(int idj){
+  //rappel : list <C_link*> L_adjLinks;
+  std::list<C_link*>::iterator it;
+  for (it = L_adjLinks.begin(); it != L_adjLinks.end(); ++it)
+  {
+      if((*it)->getidv1() == idj && (*it)->getidv2() == this->num){
+        //cout << "found " << idj << " and " << this->num << endl;
+        return((*it)->length);
+      }
+      else if((*it)->getidv2() == idj && (*it)->getidv1() == this->num){
+        //cout << "found " << idj << " and " << this->num << endl;
+        return((*it)->length);
+      }
+  }
+  cout << "ERROR C_node::getDistanceFrom() NOT FOUND BETWEEN NODE ID " << idj << " and " << this->num << " (in [1, nbnodes])" << endl;
+  return -1000; //PROBLEM NOT FOUND
+} 
 
 /***************** FIN VRP ADDED ****************************/
 

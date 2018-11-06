@@ -21,8 +21,11 @@ using namespace std;
 class C_link{
 public:
   int num;      // Number of the edge
+
+  //v1 and v2 are from [0, nbnodes], better use getidv1() and getidv2()
   int v1, v2;   // The two extremities of an edge v1v2 or of an arc (v1,v2)
-  float length;
+  
+  float length; // should be set from the start
 
   double algo_cost;
   
@@ -31,8 +34,9 @@ public:
 
   void set_algo_cost(double v);
 
-  //returns link distance (EUC_2D with x,y of nodes)
-  float getDistance(); //added // TODO
+  float getDistance(); //returns this.length //added 
+  int getidv1(); //added
+  int getidv2();//added
 
    /******** Lemon structure ****/
    lemon::ListGraph::Edge LGU_name;
@@ -59,7 +63,7 @@ public :
    bool test_successor(int j);
 
    //return EUC_2D distance to other node
-   float getDistanceFrom(int j);  //added // TODO
+   float getDistanceFrom(int idj);  //added // TODO //TODO A TESTER
 
    /******** Lemon structure ****/
    lemon::ListGraph::Node LGU_name;
