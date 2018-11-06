@@ -1,0 +1,255 @@
+#include <stdio.h>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+
+/* scip includes */
+#include "objscip/objscip.h"
+#include "objscip/objscipdefplugins.h"
+
+/* user defined includes */
+#include "Graph.h"
+#include "SCIP_master.h"
+#include "SCIP_pricer.h"
+#include"SCIP_BranchingHandler.h"
+#include"SCIP_BranchingRule.h"
+
+
+/* namespace usage */
+using namespace std;
+using namespace scip;
+
+//#define SCIP_OUTPUT
+
+#define SCIP_DEBUG
+
+int main(int argc, char** argv)
+{
+  char * name,*nameext, *nameextsol;
+  int i;
+
+  if(argc!=2){
+    cerr<<"usage: "<<argv[0]<<" <DIMACS file name>  (without .dim)"<<endl; 
+    return 1;
+  }
+ 
+   
+  name= new char[40];
+  nameext= new char[40];
+  nameextsol= new char[40];
+
+  name=strcat(name,argv[1]);
+  nameext=strcat(nameext,argv[1]);
+  nameext=strcat(nameext,".dim");
+
+  ifstream fic(nameext);
+  
+  C_Graph G;
+
+  G.read_undirected_DIMACS(fic);
+
+  fic.close();
+  
+
+  //////////////
+  //////  SCIP INITIALIZATION
+  //////////////
+
+  SCIP *scip=NULL;
+  
+  C_master_coloring Master;
+  
+  /* initialize SCIP environment */
+  SCIPcreate(&scip);
+
+   SCIPprintVersion(scip, NULL);
+   SCIPinfoMessage(scip, NULL, "\n");
+
+   /* include default plugins */
+   SCIPincludeDefaultPlugins(scip);
+
+   /* set verbosity parameter */
+   SCIPsetIntParam(scip, "display/verblevel", 5);
+   /* SCIPsetBoolParam(scip, "display/lpinfo", TRUE); */
+
+
+  /* create empty problem */
+   SCIPcreateProb(scip, "COLORING", 0, 0, 0, 0, 0, 0, 0);
+
+   
+  ////////////////////////
+  //////  INEQUALITIES
+  ////////////////////////
+
+
+  
+   // Set packing constraints: one stable set per nodes
+   
+
+   Master.V_node_ineq.resize(G.nb_nodes, (SCIP_CONS*) NULL);
+   
+   char con_name[255];
+   for (i = 0; i < G.nb_nodes; i++)
+   {
+      SCIP_CONS* con = NULL;
+      (void) SCIPsnprintf(con_name, 255, "C%d", i);
+      SCIPcreateConsLinear( scip, &con, con_name, 0, NULL, NULL,
+			    1.0,   // lhs 
+			    1.0,   // rhs  SCIPinfinity(scip) if >=1
+			    true,  /* initial */
+			    false, /* separate */
+			    true,  /* enforce */
+			    true,  /* check */
+			    true,  /* propagate */
+			    false, /* local */
+			    true,  /* modifiable */
+			    false, /* dynamic */
+			    false, /* removable */
+			    false  /* stickingatnode */ );
+      SCIPaddCons(scip, con);
+      Master.V_node_ineq[i] = con; 
+   }
+
+
+
+  /////////////////////
+  // Add variables corresponding to "one node" stable set
+  ////////////////////
+
+
+   Master.L_var.clear();
+
+   char var_name[255];
+
+   for (i=0;i<G.nb_nodes;i++){
+     SCIPsnprintf(var_name, 255, "S_%d",i);
+     SCIPdebugMsg(scip, "new variable <%s>\n", var_name);
+
+     /* create the new variable: Use upper bound of infinity such that we do not have to care about
+      * the reduced costs of the variable in the pricing. The upper bound of 1 is implicitly satisfied
+      * due to the set partitioning constraints.
+      */
+     C_master_var* var=new C_master_var;
+     
+     SCIPcreateVar(scip, &(var->ptr), var_name,
+		   0.0,                     // lower bound
+		   SCIPinfinity(scip),      // upper bound
+		   1.0,                     // objective
+		   SCIP_VARTYPE_INTEGER, // variable type
+		   true, false, NULL, NULL, NULL, NULL, NULL);
+
+          
+     /* add new variable to the list of variables to price into LP (score: leave 1 here) */
+     SCIPaddVar(scip, var->ptr);
+
+     /* add coefficient into the set partition constraints */
+     SCIPaddCoefLinear(scip, Master.V_node_ineq[i], var->ptr, 1.0);
+
+     var->L_nodes.clear();
+     var->L_nodes.push_back(i);
+     
+     Master.L_var.push_back(var);
+
+   }
+
+   ////////////////////
+   // Define pricer
+   //////////////////
+   
+   static const char* PRICER_NAME = "Pricer_Coloring";
+
+   // include Coloring pricer 
+   ObjPricerColoring* pricer_ptr = new ObjPricerColoring(scip, PRICER_NAME, &G, &Master);
+
+   SCIPincludeObjPricer(scip, pricer_ptr, true);
+
+   // activate pricer
+   SCIPactivatePricer(scip, SCIPfindPricer(scip, PRICER_NAME));
+
+
+   cout<<"Write init pl"<<endl;
+   SCIPwriteOrigProblem(scip, "init.lp", "lp", FALSE);
+
+
+ 
+  ////////////////////
+   // Define branching
+   //////////////////
+    
+   BranchingHandler* branchHandler = new BranchingHandler(scip, &G, pricer_ptr);
+   BranchingRule* branchRule = new BranchingRule(scip,&G, &Master);
+
+   SCIPincludeObjConshdlr(scip, branchHandler, TRUE);
+   SCIPincludeObjBranchrule(scip, branchRule, TRUE);
+    
+
+   
+   /*************
+    *  Solve    *
+    *************/
+
+   SCIPsolve(scip);
+
+
+   /**************
+    * Statistics *
+    *************/
+   //   SCIPprintStatistics(scip, NULL);
+
+   SCIPprintBestSol(scip, NULL, FALSE);
+
+   list<C_master_var*>::iterator itv;
+   list<int>::iterator iti;
+   
+   int nbcol = 0;
+   SCIP_SOL *sol=SCIPgetBestSol(scip);
+
+   vector<int> V_sol;
+   V_sol.resize(G.nb_nodes);
+   
+   for(itv = Master.L_var.begin(); itv!=Master.L_var.end(); itv++){
+     if(SCIPgetSolVal (scip, sol, (*itv)->ptr) > SCIPepsilon(scip)){
+	   nbcol++;
+	   cout<<"Couleur "<<nbcol<<" : ";
+	   for (iti=(*itv)->L_nodes.begin();iti!=(*itv)->L_nodes.end();iti++){
+	     cout<<*iti<<" ";
+	     V_sol[*iti]=nbcol;
+	   }
+	   cout<<endl;
+	}
+   }
+
+
+  nameextsol=strcat(nameextsol,argv[1]);
+  nameextsol=strcat(nameextsol,".color");
+
+
+  ofstream ficsol(nameextsol);
+  
+  for(i = 0; i < G.nb_nodes; i++) 
+    ficsol<<V_sol[i]<<" ";
+
+  ficsol.close();
+   
+
+   /********************
+    * Deinitialization *
+    ********************/
+  
+
+   for (itv=Master.L_var.begin();itv!=Master.L_var.end();itv++){
+     SCIPreleaseVar(scip, &((*itv)->ptr));
+   }
+   
+   for (i = 0; i < G.nb_nodes; i++){     
+     SCIPreleaseCons(scip, &Master.V_node_ineq[i]);
+   }
+   
+   //SCIPfree(&scip);
+
+   BMScheckEmptyMemory();
+
+   return 0;
+}
+

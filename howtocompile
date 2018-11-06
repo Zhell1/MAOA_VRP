@@ -1,0 +1,12 @@
+si erreur sur == NULL
+
+faire "ssh ssh", se co et compiler depuis
+
+(source .bashrc peut etre necessaire aussi)
+
+
+____________
+
+ancienne version de g++
+
+ou change fic==NULL en !fic

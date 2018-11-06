@@ -1,0 +1,25 @@
+http://www-desir.lip6.fr/~fouilhoux/MAOA/
+
+ Projet 2018
+"Autour des problèmes de tournées:
+Véhicules, techniciens, réseaux de distribution,...
+
+Partie 1: Le CVRP
+
+Projet_Production_Routing1819.pdf
+Instances CVRPLIB: http://vrp.atd-lab.inf.puc-rio.br/index.php/en/
+
+Partie 2: Prise en compte de contraintes supplémentaires
+
+compte pour >= 20% de la note finale
+___________________________
+
+présentation prof:
+
+chaque client n'est livré que par 1 seule tournée => les tournées sont sommets disjointes
+
+CVRP = partition des sommets du graphe en tournées + couverture par des cycles
+
+but : minimiser somme total des distances (temps passé sur les routes)
+
+

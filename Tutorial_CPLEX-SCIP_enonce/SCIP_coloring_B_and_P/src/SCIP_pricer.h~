@@ -1,0 +1,79 @@
+#ifndef __SCIP_PRICER_COLORING_H__
+#define __SCIP_PRICER_COLORING_H__
+
+#include "objscip/objscip.h"
+#include "scip/pub_var.h"
+#include <ilcplex/ilocplex.h>
+#include <vector>
+#include <list>
+#include "Graph.h"
+
+using namespace std;
+using namespace scip;
+
+
+/** pricer class */
+class ObjPricerColoring : public ObjPricer{
+public:
+
+   C_Graph *G;
+   vector<SCIP_CONS* > *cst_1stable;   /**< array of stable set constraints */
+   int nb_var;  // Number of produced variables
+   list<SCIP_VAR *>* variables;
+
+   IloEnv   *env;
+   IloModel *model;
+   IloObjective obj;
+   IloNumVarArray *x;
+   IloNumArray *cplex_dual_cost;
+   IloCplex *cplex;
+
+   /** Constructs the pricer object with the data needed */
+   ObjPricerColoring(
+      SCIP*                               scip,        /**< SCIP pointer */
+      const char*                         p_name,      /**< name of pricer */
+      C_Graph*                      G,
+      vector<SCIP_CONS* >*          cst_1stable,  /**< array of stable set constraints */
+      list<SCIP_VAR *>* variables
+      );
+
+   /** Destructs the pricer object. */
+   virtual ~ObjPricerColoring();
+
+   /** initialization method of variable pricer (called after problem was transformed) */
+   virtual SCIP_DECL_PRICERINIT(scip_init);
+
+   /** reduced cost pricing method of variable pricer for feasible LPs */
+   virtual SCIP_DECL_PRICERREDCOST(scip_redcost);
+
+   /** perform pricing */
+   SCIP_RETCODE pricing(
+      SCIP*              scip               /**< SCIP data structure */
+      );
+
+   /** add tour variable to problem */
+   SCIP_RETCODE add_stableset_variable(
+      SCIP*              scip,               /**< SCIP data structure */
+      const list<int>&   tour                /**< list of nodes in tour */
+      );
+
+   /** return negative reduced cost tour (uses restricted shortest path dynamic programming algorithm) */
+   double find_stableset(
+      const vector<double> & dual_cost,     /**< dual cost of cste */
+      list<int>&         stable                /**< list of nodes in tour */
+      );
+
+   /* /\** whether edge between node i and j exists *\/ */
+   /* inline bool have_edge( */
+   /*    const int          i,                  /\**< first node *\/ */
+   /*    const int          j                   /\**< second node *\/ */
+   /*    ) const */
+   /* { */
+   /*    /\* return whether variable is not fixed to 0 *\/ */
+   /*    return ( SCIPvarGetUbLocal( arc_var(i, j) ) > 0.5 ); */
+   /* } */
+
+   
+};
+
+#endif
