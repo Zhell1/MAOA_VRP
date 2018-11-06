@@ -8,8 +8,7 @@ Attention à la numérotation dans les fichiers les ID des noeuds commencent à 
 
 Pour simplifier j'ai créé ces fonctions qui utilisent la numérotation des fichiers (à partir de 1):
 
-float C_link::getDistance()
-int C_link::getidv1()
-int C_link::getidv2()
-
-float C_node::getDistanceFrom(int idj)
+- float C_link::getDistance()
+- int C_link::getidv1()
+- int C_link::getidv2()
+- float C_node::getDistanceFrom(int idj)
