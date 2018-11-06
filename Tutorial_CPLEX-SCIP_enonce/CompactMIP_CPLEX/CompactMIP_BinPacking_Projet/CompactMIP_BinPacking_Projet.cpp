@@ -5,6 +5,7 @@
 #include <sstream>
 
 #include"../../Graph/Graph.h"
+#include "./VRPfileParser.cpp"
 
 #define epsilon 0.00001
 

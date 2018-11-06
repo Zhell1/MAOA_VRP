@@ -63,9 +63,13 @@ public :
 class C_Graph{
 public:
 
+  C_Graph(){};
+
   bool directed;  // True if directed / False if undirected
   int nb_nodes;   // Number of nodes
   int nb_links;   // Number of links
+
+  int capacity_VRP;
 
   float maxx,maxy,minx,miny;
   float lengthTSP(int i, int j);
@@ -92,7 +96,7 @@ public:
   // Read a DIMACS file and store the corresponding graph in C_Graph
   void read_undirected_DIMACS(istream & fic);
 
-    // Read a directed "gra" format file
+  // Read a directed "gra" format file
   // and store the corresponding graph in C_Graph
   void read_directed_GRA(istream & in);
 

@@ -58,17 +58,31 @@ CCFLAGS = $(CCOPT) -I$(CPLEXINCDIR) -I$(CONCERTINCDIR) -I$(LEMONINCDIR)
 
 
 
-all: CompactMIP_Coloring_exercice
-
+all: VRPfileParser
 
 Graph.o: ../../Graph/Graph.cpp ../../Graph/Graph.h
 	$(CCC) -c $(CCFLAGS) $(CCLNDIRS) -c ../../Graph/Graph.cpp -o ../../Graph/Graph.o
 
-CompactMIP_Coloring_exercice.o: CompactMIP_Coloring_exercice.cpp
-	$(CCC) -c $(CCFLAGS) $(CCLNDIRS) CompactMIP_Coloring_exercice.cpp
+VRPfileParser.o: VRPfileParser.cpp
+	$(CCC) -c $(CCFLAGS) $(CCLNDIRS) VRPfileParser.cpp
 
-CompactMIP_Coloring_exercice: CompactMIP_Coloring_exercice.o  Graph.o 
-	$(CCC) $(CCFLAGS) $(CCLNDIRS) CompactMIP_Coloring_exercice.o ../../Graph/Graph.o   -o ../../bin/CompactMIP_Coloring_exercice $(CCLNFLAGS)
+VRPfileParser: VRPfileParser.o  Graph.o 
+	$(CCC) $(CCFLAGS) $(CCLNDIRS) VRPfileParser.o ../../Graph/Graph.o   -o ../../bin/VRPfileParser $(CCLNFLAGS)
 
 clean:
-	rm -f *.o ../../bin/CompactMIP_Coloring_exercice
+	rm -f *.o ../../bin/VRPfileParser
+
+
+# debug
+
+debug: VRPfileParserDebug
+
+
+Graph.oDebug: ../../Graph/Graph.cpp ../../Graph/Graph.h
+	$(CCC) -c $(CCFLAGS) $(CCLNDIRS) -c ../../Graph/Graph.cpp -o ../../Graph/Graph.o -g -Wall -Wextra
+
+VRPfileParser.oDebug: VRPfileParser.cpp
+	$(CCC) -c $(CCFLAGS) $(CCLNDIRS) VRPfileParser.cpp -g -Wall -Wextra
+
+VRPfileParserDebug: VRPfileParser.o  Graph.o 
+	$(CCC) $(CCFLAGS) $(CCLNDIRS) VRPfileParser.o ../../Graph/Graph.o   -o ../../bin/VRPfileParser $(CCLNFLAGS) -g -Wall -Wextra
