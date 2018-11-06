@@ -31,6 +31,9 @@ public:
 
   void set_algo_cost(double v);
 
+  //returns link distance (EUC_2D with x,y of nodes)
+  float getDistance(); //added // TODO
+
    /******** Lemon structure ****/
    lemon::ListGraph::Edge LGU_name;
    lemon::ListDigraph::Arc LGD_name;
@@ -44,6 +47,8 @@ public :
    int num;     // Number of the node
    float weight;
    float x,y;
+
+   float VRP_demand; //added
    
    list <C_link*> L_adjLinks;
 
@@ -53,9 +58,13 @@ public :
    //Test if j is a successor of i in O(degre(i))
    bool test_successor(int j);
 
+   //return EUC_2D distance to other node
+   float getDistanceFrom(int j);  //added // TODO
+
    /******** Lemon structure ****/
    lemon::ListGraph::Node LGU_name;
    lemon::ListDigraph::Node LGD_name;
+
 };
 
 
@@ -69,7 +78,7 @@ public:
   int nb_nodes;   // Number of nodes
   int nb_links;   // Number of links
 
-  int capacity_VRP;
+  int VRP_capacity; //added
 
   float maxx,maxy,minx,miny;
   float lengthTSP(int i, int j);
@@ -79,6 +88,11 @@ public:
 
   // Additional encoding: a vector on the edges (on pointers over edges)
   vector <C_link*> V_links;
+
+  /******* VRP functions added ********/
+  C_node* get_node_by_id(int id); //added
+
+  /************************************/
 
   /*********************************************/
   /********* LEMON Structure *******************/

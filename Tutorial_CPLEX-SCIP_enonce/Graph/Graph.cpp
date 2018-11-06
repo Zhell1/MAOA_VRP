@@ -10,6 +10,27 @@ using namespace std;
 
 //#define OUTPUT_GRAPH
 
+
+
+
+
+
+/***************** VRP ADDED ****************************/
+
+C_node* C_Graph::get_node_by_id(int id) {
+    return &(this->V_nodes[id-1]); 
+    //should work if created in the right order
+}
+
+
+/***************** FIN VRP ADDED ****************************/
+
+
+
+
+
+
+
 /****************************  C_link  *******************************/
 
 int C_link::return_other_extrem(int v){
