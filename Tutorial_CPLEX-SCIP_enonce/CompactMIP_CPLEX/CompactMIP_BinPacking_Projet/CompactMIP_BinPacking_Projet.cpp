@@ -5,7 +5,7 @@
 #include <sstream>
 
 #include"../../Graph/Graph.h"
-#include "./VRPfileParser.cpp"
+#include "./VRPfileParser.h"
 
 #define epsilon 0.00001
 
@@ -28,7 +28,8 @@ int main (int argc, char**argv){
 
   vector<int> sol;
 
-
+/*********************
+   //old version
   //////////////
   //////  DATA
   //////////////
@@ -54,6 +55,26 @@ int main (int argc, char**argv){
   G.read_undirected_DIMACS(fic);
 
   fic.close();
+**********************/
+
+
+  //////////////
+  //////  DATA
+  //////////////
+
+  if(argc!=2){
+    cerr<<"usage: "<<argv[0]<<" filename.vrp"<<endl; 
+    return 1;
+  }
+
+  string filename = argv[1];
+
+  C_Graph* G = parseVRPfile(filename);
+
+  //C_node* cnode = graph_ptr->get_node_by_id(1);    //exemple d'utilisation
+  //(*G).nb_nodes;    // G->nb_nodes;                //both mean the same here
+
+  C_node* cnode  = (*G).get_node_by_id(1);
 
 
   //////////////
@@ -70,7 +91,7 @@ int main (int argc, char**argv){
   ////////////////////////
 
   //K borne sup sur la coloration
-  int K = G.nb_nodes; // K= |V|
+  int K = (*G).nb_nodes; // K= |V|
   //w
   vector<IloNumVar> w;
   w.resize(K);
@@ -84,9 +105,9 @@ int main (int argc, char**argv){
   }
   //x
   vector<vector<IloNumVar> > x;
-  x.resize(G.nb_nodes);
+  x.resize((*G).nb_nodes);
   //x_u vecteur binaire à K dimensions
-  for(u = 0; u < G.nb_nodes; u++) {
+  for(u = 0; u < (*G).nb_nodes; u++) {
     vector<IloNumVar> x_u;
     x_u.resize(K);
     //binaire
@@ -109,7 +130,7 @@ int main (int argc, char**argv){
   IloRangeArray CC(env);
   int nbcst=0;
   //for every node u in V
-  for (u = 0; u < G.nb_nodes; u++){
+  for (u = 0; u < (*G).nb_nodes; u++){
     //sum{l= 1 to K} x_u_l = 1 
     IloExpr cst(env);
     for (l = 0; l < K; l++){
@@ -126,9 +147,9 @@ int main (int argc, char**argv){
   //deuxieme contrainte
 
   //for every edge
-  for (e = 0; e < G.nb_links; e++){
-    int u = G.V_links[e]->v1;
-    int v = G.V_links[e]->v2;
+  for (e = 0; e < (*G).nb_links; e++){
+    int u = (*G).V_links[e]->v1;
+    int v = (*G).V_links[e]->v2;
     //pour tout l dans 0 à K
     for(l = 0; l < K; l++) {
       IloExpr cst(env);
@@ -200,7 +221,7 @@ parcourir X_u_l, toruver la couleur activée et la mettre dans le vec solution
 
   vector<int>   solw;
   solw.resize(K);
-  for(u = 0; u < G.nb_nodes; u++) {
+  for(u = 0; u < (*G).nb_nodes; u++) {
     int color = 0;
     for(l=0; l < K; l++) {
       if(cplex.getValue(x[u][l]) == 1) {
@@ -224,7 +245,7 @@ parcourir X_u_l, toruver la couleur activée et la mettre dans le vec solution
 
   ofstream ficsol(nameextsol.c_str());
   
-  for(i = 0; i < G.nb_nodes; i++) 
+  for(i = 0; i < (*G).nb_nodes; i++) 
     ficsol<<solw[i]<<" ";
 
   ficsol.close();

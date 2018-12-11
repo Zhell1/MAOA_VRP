@@ -20,7 +20,9 @@ LIBFORMAT  = static_pic
 # Compiler selection 
 # ---------------------------------------------------------------------
 
-CCC = g++ -O0
+#CCC = g++ -O0  #original
+CCC = g++ -O0 -w 
+#-w remove warnings
 
 
 # ---------------------------------------------------------------------
@@ -58,19 +60,21 @@ CCFLAGS = $(CCOPT) -I$(CPLEXINCDIR) -I$(CONCERTINCDIR) -I$(LEMONINCDIR)
 
 
 
-all: VRPfileParser
+all: CompactMIP_BinPacking_Projet
 
 Graph.o: ../../Graph/Graph.cpp ../../Graph/Graph.h
 	$(CCC) -c $(CCFLAGS) $(CCLNDIRS) -c ../../Graph/Graph.cpp -o ../../Graph/Graph.o
 
-VRPfileParser.o: VRPfileParser.cpp
-	$(CCC) -c $(CCFLAGS) $(CCLNDIRS) VRPfileParser.cpp
+CompactMIP_BinPacking_Projet.o : CompactMIP_BinPacking_Projet.cpp VRPfileParser.h
+	$(CCC) -c $(CCFLAGS) $(CCLNDIRS) CompactMIP_BinPacking_Projet.cpp
 
-VRPfileParser: VRPfileParser.o  Graph.o 
-	$(CCC) $(CCFLAGS) $(CCLNDIRS) VRPfileParser.o ../../Graph/Graph.o   -o ../../bin/VRPfileParser $(CCLNFLAGS)
+CompactMIP_BinPacking_Projet: CompactMIP_BinPacking_Projet.o   Graph.o 
+	$(CCC) $(CCFLAGS) $(CCLNDIRS) CompactMIP_BinPacking_Projet.o  ../../Graph/Graph.o   -o ../../bin/CompactMIP_BinPacking_Projet $(CCLNFLAGS)
+
 
 clean:
-	rm -f *.o ../../bin/VRPfileParser
+	rm -f *.o ../../bin/VRPfileParser ../../bin/CompactMIP_BinPacking_Projet
+
 
 
 # debug
@@ -86,3 +90,15 @@ VRPfileParser.oDebug: VRPfileParser.cpp
 
 VRPfileParserDebug: VRPfileParser.o  Graph.o 
 	$(CCC) $(CCFLAGS) $(CCLNDIRS) VRPfileParser.o ../../Graph/Graph.o   -o ../../bin/VRPfileParser $(CCLNFLAGS) -g -Wall -Wextra
+
+	
+
+############### KEEP THIS #####################
+#this used VRPfileParser.cpp, has been renamed as a .h since then and the main() function in it has been commented
+
+#VRPfileParser.o: VRPfileParser.cpp
+#	$(CCC) -c $(CCFLAGS) $(CCLNDIRS) VRPfileParser.cpp
+
+#VRPfileParser: VRPfileParser.o  Graph.o 
+#	$(CCC) $(CCFLAGS) $(CCLNDIRS) VRPfileParser.o ../../Graph/Graph.o   -o ../../bin/VRPfileParser $(CCLNFLAGS)
+###############################################
