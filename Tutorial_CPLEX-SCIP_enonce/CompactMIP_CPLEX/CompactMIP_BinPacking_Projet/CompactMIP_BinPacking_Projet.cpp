@@ -17,6 +17,8 @@ using namespace std;
 // MIP formulation for the BinPacking problem
 // Given a graph G=(V,E)
 
+//   https://fr.wikipedia.org/wiki/Probl%C3%A8me_de_bin_packing
+
 ///////////////////////////////
 ///////////////////////////////
 
@@ -26,7 +28,7 @@ int main (int argc, char**argv){
   int i,k,l,u,e;
   list<int>::const_iterator it;
 
-  vector<int> sol;
+  //vector<int> sol;
 
 /*********************
    //old version
@@ -67,6 +69,11 @@ int main (int argc, char**argv){
     return 1;
   }
 
+  name=argv[1];
+  nameext=name+".dim";
+  nameextsol=name+".color";
+
+
   string filename = argv[1];
 
   C_Graph* G = parseVRPfile(filename);
@@ -90,12 +97,41 @@ int main (int argc, char**argv){
   //////  VAR
   ////////////////////////
 
-  //K borne sup sur la coloration
-  int K = (*G).nb_nodes; // K= |V|
-  //w
+  //N borne sup sur le nombre de boites à utiliser (au pire on met chaque objet dans sa propre boite)
+  int N = (*G).nb_nodes; // N = |V|
+
+  //y
   vector<IloNumVar> w;
   w.resize(K);
-  //w_l var binaire
+  //y_j var binaire {0,1}, égale à 1 si la boîte  j est utilisée, 0 sinon.
+
+
+/*
+*
+*
+*
+*
+*
+*
+************************************************ REPRENDRE ICI ***********************************************************************
+*
+*
+*
+*   https://fr.wikipedia.org/wiki/Probl%C3%A8me_de_bin_packing
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*/
   for(l = 0; l < K; l++) {
     w[l] = IloNumVar(env, 0.0, 1.0, ILOINT);
     ostringstream varname;
@@ -103,6 +139,7 @@ int main (int argc, char**argv){
     varname<<"w_"<<l;
     w[l].setName(varname.str().c_str());
   }
+
   //x
   vector<vector<IloNumVar> > x;
   x.resize((*G).nb_nodes);
@@ -249,6 +286,41 @@ parcourir X_u_l, toruver la couleur activée et la mettre dans le vec solution
     ficsol<<solw[i]<<" ";
 
   ficsol.close();
+
+  cout << "wrote solution to file: " << nameextsol.c_str() << endl;
+
+  /*############################## second output using the viewerColor
+   PS: this should require as many colors as there are nodes since the graph is complete
+   this is indeed the case with a graph of 31 nodes (A-n32-k5.vrp): 
+          "We only have 13 colors and this solutions needs 31 colors... some nodes will have wrong colors!
+           $PATHTUTOMIP/graphviz-2.40.1/bin/dot -Tpdf -o ../Instances/BinPacking_Projet/A-n32-k5.vrp_G_color.pdf ../Instances/BinPacking_Projet/A-n32-k5.vrp_G_color.dot"
+*/
+/*
+
+  string nameext2=name+".color";
+
+  ifstream fic2(nameext2.c_str());
+
+  if (fic2.fail()){
+    cerr<<"file "<<nameext2<<" not found"<<endl;
+    return 1;
+  }
+
+  vector<int> sol;
+  sol.resize((*G).nb_nodes);
+  
+  for (i=0;i<(*G).nb_nodes;i++)
+    fic2>>sol[i];
+  
+  fic2.close();
+
+  
+  G->write_dot_G_color(name.c_str(),sol);
+
+
+  cout << "wrote visualisation of solution to file: " << name.c_str() << "_G_color.pdf" << endl;
+
+  */
 
   return 0;
 }
