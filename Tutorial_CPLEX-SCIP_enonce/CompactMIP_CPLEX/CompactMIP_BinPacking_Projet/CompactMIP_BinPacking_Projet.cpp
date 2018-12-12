@@ -25,7 +25,7 @@ using namespace std;
 int main (int argc, char**argv){
 
   string name,nameext,nameextsol;
-  int i,k,l,u,e;
+  int i,j;
   list<int>::const_iterator it;
 
   //vector<int> sol;
@@ -59,7 +59,6 @@ int main (int argc, char**argv){
   fic.close();
 **********************/
 
-
   //////////////
   //////  DATA
   //////////////
@@ -81,13 +80,12 @@ int main (int argc, char**argv){
   //C_node* cnode = graph_ptr->get_node_by_id(1);    //exemple d'utilisation
   //(*G).nb_nodes;    // G->nb_nodes;                //both mean the same here
 
-  C_node* cnode  = (*G).get_node_by_id(1);
+  //C_node* cnode  = (*G).get_node_by_id_startat1(1);   //example
 
 
   //////////////
   //////  CPLEX INITIALIZATION
   //////////////
-
 
   IloEnv   env;
   IloModel model(env);
@@ -101,103 +99,121 @@ int main (int argc, char**argv){
   int N = (*G).nb_nodes; // N = |V|
 
   //y
-  vector<IloNumVar> w;
-  w.resize(K);
+  vector<IloNumVar> y;
+  y.resize(N); 
+
+  ///////     
+  ///////     IMPORTANT : ALL LOOPS START AT 1 BECAUSE THE FIRST NODE IS THE DEPOT AND WE DON'T WANT IT HERE
+  ///////     
+
+
+
   //y_j var binaire {0,1}, égale à 1 si la boîte  j est utilisée, 0 sinon.
-
-
-/*
-*
-*
-*
-*
-*
-*
-************************************************ REPRENDRE ICI ***********************************************************************
-*
-*
-*
-*   https://fr.wikipedia.org/wiki/Probl%C3%A8me_de_bin_packing
-*
-*
-*
-*
-*
-*
-*
-*
-*
-*
-*
-*
-*
-*/
-  for(l = 0; l < K; l++) {
-    w[l] = IloNumVar(env, 0.0, 1.0, ILOINT);
+  for(j = 1; j < N; j++) {
+    y[j] = IloNumVar(env, 0.0, 1.0, ILOINT);
     ostringstream varname;
     varname.str("");
-    varname<<"w_"<<l;
-    w[l].setName(varname.str().c_str());
+    varname<<"y_"<<j;
+    y[j].setName(varname.str().c_str());
   }
 
-  //x
+  //x_i_j € {0,1}
+  /*vector<vector<IloNumVar> > x;
+  x.resize(N-1); //don't use the depot
+  
+  for (i=1;i < N;i++)
+    x[i-1].resize(N-1);
+  
+  for (i=1;i< N;i++){
+    for (j=1;j< N;j++) {
+      if (i!=j){
+        x[i-1][j-1]=IloNumVar(env, 0.0, 1.0, ILOINT);
+        ostringstream varname;
+        varname.str("");
+        varname<<"x_"<<i<<"_"<<j;
+        x[i-1][j-1].setName(varname.str().c_str());
+      }
+    }
+  }
+  */
+  //x_i_j € {0,1}
   vector<vector<IloNumVar> > x;
-  x.resize((*G).nb_nodes);
-  //x_u vecteur binaire à K dimensions
-  for(u = 0; u < (*G).nb_nodes; u++) {
-    vector<IloNumVar> x_u;
-    x_u.resize(K);
-    //binaire
-    for(l = 0; l < K; l++) {
-      x_u[l] = IloNumVar(env, 0.0, 1.0, ILOINT); 
+  x.resize(N); 
+
+  for (i=1;i< N;i++){
+    vector<IloNumVar> x_i;
+    x_i.resize(N); 
+
+    for (j=1;j< N;j++) {
+      x_i[j] = IloNumVar(env, 0.0, 1.0, ILOINT); 
       ostringstream varname;
       varname.str("");
-      varname<<"x_"<<u<<"_"<<l;
-      x_u[l].setName(varname.str().c_str());
+      varname<<"x_"<<i<<"_"<<j;
+      x_i[j].setName(varname.str().c_str());
     }
-    x[u] = x_u;
+    x[i] = x_i;
   }
 
   //////////////
   //////  CST
   //////////////
 
-  //premiere contrainte
 
   IloRangeArray CC(env);
   int nbcst=0;
-  //for every node u in V
-  for (u = 0; u < (*G).nb_nodes; u++){
-    //sum{l= 1 to K} x_u_l = 1 
+
+  // première contrainte:
+  //      
+  //         n
+  //      somme (x_i_j * c_i) <= C * y_j         pour tout j = 1 à n
+  //       i = 1
+  //      
+  //      Signifie qu'on ne peut dépasser la taille d'une boîte pour un rangement.
+  //      La partie droite de l'inégalité oblige y_j à prendre la valeur 1
+  //          dès qu'un article est rangé dans la boîte j
+
+  int C_const = (*G).VRP_capacity;
+  int c_i;
+
+  //for every j
+  for (j = 1; j < N; j++){
     IloExpr cst(env);
-    for (l = 0; l < K; l++){
-      cst+=x[u][l];
+    //pour tout i
+    for(i = 1; i < N; i++) {
+      c_i = (*G).get_node_by_id_startat0(i)->VRP_demand;
+      cst += x[i][j] * c_i;
     }
-    CC.add(cst==1);
+    cst += - C_const * y[j];
+    CC.add(cst<=0);
     ostringstream cstname;
     cstname.str("");
-    cstname<<"Cst_1colorPerVertex_"<<u;
+    cstname<<"Cst_firstype_"<<j;
+    cout << cstname.str().c_str() << endl;
     CC[nbcst].setName(cstname.str().c_str());
     nbcst++;
   }
 
-  //deuxieme contrainte
+  // deuxième contrainte:
+  //      
+  //         n
+  //      somme (x_i_j) = 1         pour tout i = 1 à n
+  //       j = 1
+  //      
+  //      impose à tous les objets d'être rangés dans une boîte et une seule. 
 
-  //for every edge
-  for (e = 0; e < (*G).nb_links; e++){
-    int u = (*G).V_links[e]->v1;
-    int v = (*G).V_links[e]->v2;
-    //pour tout l dans 0 à K
-    for(l = 0; l < K; l++) {
-      IloExpr cst(env);
-      cst = x[u][l] + x[v][l] - w[l];
-      CC.add(cst<=0);
-      ostringstream cstname;
-      cstname.str("");
-      cstname<<"Cst_arete_"<<e;
-      CC[nbcst].setName(cstname.str().c_str());
-      nbcst++;
+  //for every i
+  for (i = 1; i < N; i++){
+    IloExpr cst(env);
+    for (j = 1; j < N; j++){
+      cst+=x[i][j];
     }
+    CC.add(cst==1);
+    ostringstream cstname;
+    cstname.str("");
+    cstname<<"Cst_secondtype_"<<i;
+    cout << cstname.str().c_str() << endl;
+    CC[nbcst].setName(cstname.str().c_str());
+    nbcst++;
   }
 
   model.add(CC);
@@ -209,11 +225,12 @@ int main (int argc, char**argv){
   
   IloObjective obj=IloAdd(model, IloMinimize(env, 0.0));
   
-  for (l = 0; l < K ; l++){
-    obj.setLinearCoef(w[l],1);
+  //minimize   sum_for_j=1_to_n  (y_j)
+  for (j = 1; j < N ; j++){
+    obj.setLinearCoef(y[j],1);
   }
  
-///////////
+  ///////////
   //// RESOLUTION
   //////////
 
@@ -248,27 +265,31 @@ int main (int argc, char**argv){
   env.out() << "Solution status = " << cplex.getStatus() << endl;
   env.out() << "Solution value  = " << cplex.getObjValue() << endl;
 
+  ///////
+  /////// retrieving solution
 
-/*************************** HERE WE ARE ********************************/
-//TODO
-  /*
-parcourir X_u_l, toruver la couleur activée et la mettre dans le vec solution
+  vector<int>   sol_x_i;
 
-  */
-
-  vector<int>   solw;
-  solw.resize(K);
-  for(u = 0; u < (*G).nb_nodes; u++) {
-    int color = 0;
-    for(l=0; l < K; l++) {
-      if(cplex.getValue(x[u][l]) == 1) {
-        color = l;
+  sol_x_i.resize(N);
+  for(i = 1; i < N; i++) {
+    int val = 0;
+    for(j=1; j < N; j++) {
+      if(cplex.getValue(x[i][j]) == 1) {
+        val = j; //article i rangé dans la boite j
+        //cout << "article_" << i <<"\t\tin box : " << j << endl;
         break;
       }
     }
-    solw[u] = color;
+    sol_x_i[i] = val;
   }  
 
+  int sol_nb_box= 0;
+  for(j = 1; j < N; j++) {
+    if(cplex.getValue(y[j]) == 1) {
+      sol_nb_box++; //y_j égale à 1 si la boite j est utilisée
+    }
+  }
+  cout << sol_nb_box << " BOXES USED " << endl;
 
   //////////////
   //////  CPLEX's ENDING
@@ -282,21 +303,22 @@ parcourir X_u_l, toruver la couleur activée et la mettre dans le vec solution
 
   ofstream ficsol(nameextsol.c_str());
   
-  for(i = 0; i < (*G).nb_nodes; i++) 
-    ficsol<<solw[i]<<" ";
+  //pour chaque noeud on écrit la boite (tournée) à laquelle il appartient
+  for(i = 1; i < N; i++) 
+    ficsol<<sol_x_i[i]<<" ";
 
   ficsol.close();
 
   cout << "wrote solution to file: " << nameextsol.c_str() << endl;
 
-  /*############################## second output using the viewerColor
-   PS: this should require as many colors as there are nodes since the graph is complete
-   this is indeed the case with a graph of 31 nodes (A-n32-k5.vrp): 
-          "We only have 13 colors and this solutions needs 31 colors... some nodes will have wrong colors!
-           $PATHTUTOMIP/graphviz-2.40.1/bin/dot -Tpdf -o ../Instances/BinPacking_Projet/A-n32-k5.vrp_G_color.pdf ../Instances/BinPacking_Projet/A-n32-k5.vrp_G_color.dot"
-*/
-/*
+  //////////////
+  ////// second output using the viewerColor
+  //////////////
 
+  
+  // NOW we write the output files as .color and .pdf
+
+  // save to .color and reload it from the file
   string nameext2=name+".color";
 
   ifstream fic2(nameext2.c_str());
@@ -307,20 +329,21 @@ parcourir X_u_l, toruver la couleur activée et la mettre dans le vec solution
   }
 
   vector<int> sol;
-  sol.resize((*G).nb_nodes);
+  sol.resize(N);
   
-  for (i=0;i<(*G).nb_nodes;i++)
+  for (i=1; i < N; i++)
     fic2>>sol[i];
   
   fic2.close();
-
   
+
+  // create PDF with solution
   G->write_dot_G_color(name.c_str(),sol);
 
 
   cout << "wrote visualisation of solution to file: " << name.c_str() << "_G_color.pdf" << endl;
 
-  */
+
 
   return 0;
 }

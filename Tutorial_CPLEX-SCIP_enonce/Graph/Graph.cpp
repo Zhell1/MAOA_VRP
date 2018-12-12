@@ -18,19 +18,23 @@ using namespace std;
 /***************** VRP ADDED ****************************/
 
 // you must give an id between [1, nbNodes], not starting at 0  !!!
-C_node* C_Graph::get_node_by_id(int id) {
+C_node* C_Graph::get_node_by_id_startat1(int id) {
     return &(this->V_nodes[id-1]); 
     //should work if created in the right order
+}
+
+C_node* C_Graph::get_node_by_id_startat0(int id) {
+    return &(this->V_nodes[id]); 
 }
 
 float C_link::getDistance(){
   return this->length;
 }
 
-int C_link::getidv1(){
+int C_link::getidv1_startat1(){
   return (this->v1 + 1) ;
 }
-int C_link::getidv2(){
+int C_link::getidv2_startat1(){
   return (this->v2 + 1) ;
 }
 
@@ -38,16 +42,16 @@ int C_link::getidv2(){
 // you must give an id between [1, nbNodes], not starting at 0  !!!
 // this function only works if C_link.length was created with the right calculated length
 // it doesn't recalculates it ! (to be faster)
-float C_node::getDistanceFrom(int idj){
+float C_node::getDistanceFrom_startat1(int idj){
   //rappel : list <C_link*> L_adjLinks;
   std::list<C_link*>::iterator it;
   for (it = L_adjLinks.begin(); it != L_adjLinks.end(); ++it)
   {
-      if((*it)->getidv1() == idj && (*it)->getidv2() == this->num){
+      if((*it)->getidv1_startat1() == idj && (*it)->getidv2_startat1() == this->num){
         //cout << "found " << idj << " and " << this->num << endl;
         return((*it)->length);
       }
-      else if((*it)->getidv2() == idj && (*it)->getidv1() == this->num){
+      else if((*it)->getidv2_startat1() == idj && (*it)->getidv1_startat1() == this->num){
         //cout << "found " << idj << " and " << this->num << endl;
         return((*it)->length);
       }
@@ -56,6 +60,9 @@ float C_node::getDistanceFrom(int idj){
   return -1000; //PROBLEM NOT FOUND
 } 
 
+float C_node::getDistanceFrom_startat0(int idj){ 
+  return getDistanceFrom_startat1(idj+1);
+}
 /***************** FIN VRP ADDED ****************************/
 
 

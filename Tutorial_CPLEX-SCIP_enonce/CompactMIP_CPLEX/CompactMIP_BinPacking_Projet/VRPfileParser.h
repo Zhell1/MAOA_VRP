@@ -81,9 +81,9 @@ C_Graph* parseVRPfile(string filename)
 
 		if(strcmp(word.c_str(), "DIMENSION") == 0) {
 		    sstream >> word; // ':'
-		    sstream >> mygraph->nb_nodes; // int value  
+		    sstream >> mygraph->nb_nodes;//int value
 		    cout <<  mygraph->nb_nodes << " noeuds" << endl; 
-		    int n = mygraph->nb_nodes;
+		    int n = mygraph->nb_nodes ; 
 		    if(mygraph->directed == true){
 			    mygraph->nb_links = n * (n - 1) ; // pas /2 comme c'est des arcs	   
 			    cout <<  mygraph->nb_links << " arcs" << endl; 
@@ -106,7 +106,7 @@ C_Graph* parseVRPfile(string filename)
 		else if(strcmp(word.c_str(), "CAPACITY") == 0) {
 		    sstream >> word; // ':'
 		    sstream >> mygraph->VRP_capacity; // int value  
-		    cout <<  mygraph->nb_nodes << " de capacité par véhicule" << endl; 	  
+		    cout <<  mygraph->VRP_capacity << " de capacité par véhicule" << endl; 	  
 		}
 		else if(strcmp(word.c_str(), "NODE_COORD_SECTION") == 0) {
 			reading_nodecoordsection = true;
@@ -123,9 +123,9 @@ C_Graph* parseVRPfile(string filename)
 			//!\\ /!\			         because files starts at 1							/!\
 			//!\\ /!\																		/!\
 
-			sstream >> mygraph->get_node_by_id(id)->x;	//x
-			sstream >> mygraph->get_node_by_id(id)->y;	//y
-			cout << "lecture coordonnée : noeud " << id << " at (" << mygraph->get_node_by_id(id)->x << ", " << mygraph->get_node_by_id(id)->y << ")" << endl;
+			sstream >> mygraph->get_node_by_id_startat1(id)->x;	//x
+			sstream >> mygraph->get_node_by_id_startat1(id)->y;	//y
+			cout << "lecture coordonnée : noeud " << id << " at (" << mygraph->get_node_by_id_startat1(id)->x << ", " << mygraph->get_node_by_id_startat1(id)->y << ")" << endl;
 
 			if (id == mygraph->nb_nodes) {
 				reading_nodecoordsection = false;	//so that we can read the next section title after
@@ -140,9 +140,9 @@ C_Graph* parseVRPfile(string filename)
 		else if (reading_demandsection == true){
 			int id = 0;
 			sstream >> id;
-			sstream >> mygraph->get_node_by_id(id)->VRP_demand;
+			sstream >> mygraph->get_node_by_id_startat1(id)->VRP_demand;
 
-			cout << "lecture demande : noeud " << id << " demands " << mygraph->get_node_by_id(id)->VRP_demand << endl;
+			cout << "lecture demande : noeud " << id << " demands " << mygraph->get_node_by_id_startat1(id)->VRP_demand << endl;
 
 			if (id == mygraph->nb_nodes) {
 				reading_demandsection = false;	//so that we can read the next section title after

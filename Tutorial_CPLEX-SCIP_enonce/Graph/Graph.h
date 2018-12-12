@@ -35,8 +35,8 @@ public:
   void set_algo_cost(double v);
 
   float getDistance(); //returns this.length //added 
-  int getidv1(); //added
-  int getidv2();//added
+  int getidv1_startat1(); //added
+  int getidv2_startat1();//added
 
    /******** Lemon structure ****/
    lemon::ListGraph::Edge LGU_name;
@@ -52,7 +52,7 @@ public :
    float weight;
    float x,y;
 
-   float VRP_demand; //added
+   int VRP_demand; //added
    
    list <C_link*> L_adjLinks;
 
@@ -63,7 +63,8 @@ public :
    bool test_successor(int j);
 
    //return EUC_2D distance to other node
-   float getDistanceFrom(int idj);  //added // TODO //TODO A TESTER
+   float getDistanceFrom_startat0(int idj);  //added //ok verifié
+   float getDistanceFrom_startat1(int idj);  //added
 
    /******** Lemon structure ****/
    lemon::ListGraph::Node LGU_name;
@@ -94,8 +95,8 @@ public:
   vector <C_link*> V_links;
 
   /******* VRP functions added ********/
-  C_node* get_node_by_id(int id); //added
-
+  C_node* get_node_by_id_startat1(int id); //added
+  C_node* get_node_by_id_startat0(int id);
   /************************************/
 
   /*********************************************/
