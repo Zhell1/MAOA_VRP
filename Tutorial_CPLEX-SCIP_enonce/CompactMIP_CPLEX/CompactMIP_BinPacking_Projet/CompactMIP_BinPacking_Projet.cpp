@@ -21,6 +21,13 @@ bool activateoutput = true; //active this to print outputs & visualisation to pd
 
 //   https://fr.wikipedia.org/wiki/Probl%C3%A8me_de_bin_packing
 
+/*
+Approche choisie:
+- relaxer la contrainte du “m tourn´ees” en r´esolvant (par PLNE) un probl`eme avec un nombre potentiellement
+plus grand de tourn´ees; puis en confiant l’objectif de r´eduire le nombre de tourn´ees
+`a une ´etape ult´erieure.
+*/
+
 ///////////////////////////////
 ///////////////////////////////
 
@@ -31,35 +38,6 @@ int main (int argc, char**argv){
   list<int>::const_iterator it;
 
   //vector<int> sol;
-
-/*********************
-   //old version
-  //////////////
-  //////  DATA
-  //////////////
-
-  if(argc!=2){
-    cerr<<"usage: "<<argv[0]<<" <DIMACS file name>   (without .dim)"<<endl; 
-    return 1;
-  }
-
-  name=argv[1];
-  nameext=name+".dim";
-  nameextsol=name+".color";
-
-  ifstream fic(nameext.c_str());
-
-  if (fic==NULL){
-    cerr<<"file "<<nameext<<" not found"<<endl;
-    return 1;
-  }
-
-  C_Graph G;
-
-  G.read_undirected_DIMACS(fic);
-
-  fic.close();
-**********************/
 
   //////////////
   //////  DATA
