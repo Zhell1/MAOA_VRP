@@ -11,6 +11,8 @@
 
 using namespace std;
 
+bool activateoutput = true; //active this to print outputs & visualisation to pdf file
+
 ///////////////////////////////
 ///////////////////////////////
 
@@ -252,8 +254,8 @@ int main (int argc, char**argv){
   // cplex.setParam(IloCplex::ClockType,1);
   // cplex.setParam(IloCplex::RINSHeur,-1);
 
-
-  cplex.exportModel("sortie.lp");
+  string sortielp = filename+"sortie.lp";
+  cplex.exportModel(sortielp.c_str());
 
 
   if ( !cplex.solve() ) {
@@ -276,7 +278,7 @@ int main (int argc, char**argv){
     for(j=1; j < N; j++) {
       if(cplex.getValue(x[i][j]) == 1) {
         val = j; //article i rangé dans la boite j
-        //cout << "article_" << i <<"\t\tin box : " << j << endl;
+        cout << "article_" << i <<"\t\tin box : " << j << endl;
         break;
       }
     }
@@ -301,49 +303,48 @@ int main (int argc, char**argv){
   //////  OUTPUT
   //////////////
 
-  ofstream ficsol(nameextsol.c_str());
-  
-  //pour chaque noeud on écrit la boite (tournée) à laquelle il appartient
-  for(i = 1; i < N; i++) 
-    ficsol<<sol_x_i[i]<<" ";
+  if(activateoutput) {
 
-  ficsol.close();
+    ofstream ficsol(nameextsol.c_str());
+    
+    //pour chaque noeud on écrit la boite (tournée) à laquelle il appartient
+    for(i = 1; i < N; i++) 
+      ficsol<<sol_x_i[i]<<" ";
 
-  cout << "wrote solution to file: " << nameextsol.c_str() << endl;
+    ficsol.close();
 
-  //////////////
-  ////// second output using the viewerColor
-  //////////////
+    cout << "wrote solution to file: " << nameextsol.c_str() << endl;
 
-  
-  // NOW we write the output files as .color and .pdf
+    //////////////
+    ////// second output using the viewerColor
+    //////////////
 
-  // save to .color and reload it from the file
-  string nameext2=name+".color";
+    
+    // NOW we write the output files as .color and .pdf
 
-  ifstream fic2(nameext2.c_str());
+    // save to .color and reload it from the file
+    string nameext2=name+".color";
 
-  if (fic2.fail()){
-    cerr<<"file "<<nameext2<<" not found"<<endl;
-    return 1;
+    ifstream fic2(nameext2.c_str());
+
+    if (fic2.fail()){
+      cerr<<"file "<<nameext2<<" not found"<<endl;
+      return 1;
+    }
+
+    vector<int> sol;
+    sol.resize(N);
+    
+    for (i=1; i < N; i++)
+      fic2>>sol[i];
+    
+    fic2.close();
+
+    // create PDF with solution
+    G->write_dot_G_color(name.c_str(),sol);
+    cout << "wrote visualisation of solution to file: " << name.c_str() << "_G_color.pdf" << endl;
+
   }
-
-  vector<int> sol;
-  sol.resize(N);
-  
-  for (i=1; i < N; i++)
-    fic2>>sol[i];
-  
-  fic2.close();
-  
-
-  // create PDF with solution
-  G->write_dot_G_color(name.c_str(),sol);
-
-
-  cout << "wrote visualisation of solution to file: " << name.c_str() << "_G_color.pdf" << endl;
-
-
 
   return 0;
 }

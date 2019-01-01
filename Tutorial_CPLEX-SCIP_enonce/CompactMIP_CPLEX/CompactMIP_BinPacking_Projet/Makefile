@@ -8,8 +8,11 @@
 #
 #------------------------------------------------------------
 
-CPLEXDIR      = $(PATHTUTOMIP)/cplex-12.7.1/cplex
-CONCERTDIR    = $(PATHTUTOMIP)/cplex-12.7.1/concert
+#CPLEXDIR      = $(PATHTUTOMIP)/cplex-12.7.1/cplex
+#CONCERTDIR    = $(PATHTUTOMIP)/cplex-12.7.1/concert
+CPLEXDIR      = $(PATHTUTOMIP)/CPLEX_Studio128/cplex
+CONCERTDIR    = $(PATHTUTOMIP)/CPLEX_Studio128/concert
+
 LEMONDIR      = $(PATHTUTOMIP)/lemon-1.3.1
 
 
@@ -47,7 +50,7 @@ CONCERTINCDIR = $(CONCERTDIR)/include
 CPLEXINCDIR   = $(CPLEXDIR)/include
 LEMONINCDIR   = $(LEMONDIR)/include
 
-CCLNFLAGS = -lconcert -lilocplex -lcplex -lemon -lm -lpthread
+CCLNFLAGS = -lconcert -lilocplex -lcplex -lemon -lm -lpthread -ldl
 
 CCFLAGS = $(CCOPT) -I$(CPLEXINCDIR) -I$(CONCERTINCDIR) -I$(LEMONINCDIR)
 
