@@ -46,13 +46,13 @@ int main (int argc, char**argv)
 */
 
 ///  loads a .vrp file into a Graph Object
-C_Graph* parseVRPfile(string filename)
+C_Graph* parseVRPfile(string filename, bool activateprint)
 {
 
    C_Graph* mygraph = new C_Graph();
    mygraph->directed = false; //normalement à true mais les instances ont toutes des couts symmétriques
 
-   cout << "*** STARTS READING FILE : " << filename << std::endl;
+  if(activateprint) cout << "*** STARTS READING FILE : " << filename << std::endl;
 
    //ifstream inFile(filename, ios::in);
     ifstream inFile;
@@ -82,15 +82,15 @@ C_Graph* parseVRPfile(string filename)
 		if(strcmp(word.c_str(), "DIMENSION") == 0) {
 		    sstream >> word; // ':'
 		    sstream >> mygraph->nb_nodes;//int value
-		    cout <<  mygraph->nb_nodes << " noeuds" << endl; 
+		    if(activateprint) cout <<  mygraph->nb_nodes << " noeuds" << endl; 
 		    int n = mygraph->nb_nodes ; 
 		    if(mygraph->directed == true){
 			    mygraph->nb_links = n * (n - 1) ; // pas /2 comme c'est des arcs	   
-			    cout <<  mygraph->nb_links << " arcs" << endl; 
+			    if(activateprint) cout <<  mygraph->nb_links << " arcs" << endl; 
 			}
 		    else {
 			    mygraph->nb_links = n * (n - 1) /2 ;  
-			    cout <<  mygraph->nb_links << " aretes" << endl; 
+			    if(activateprint) cout <<  mygraph->nb_links << " aretes" << endl; 
 		    }
 
 		    mygraph->V_nodes.resize(mygraph->nb_nodes);
@@ -106,11 +106,11 @@ C_Graph* parseVRPfile(string filename)
 		else if(strcmp(word.c_str(), "CAPACITY") == 0) {
 		    sstream >> word; // ':'
 		    sstream >> mygraph->VRP_capacity; // int value  
-		    cout <<  mygraph->VRP_capacity << " de capacité par véhicule" << endl; 	  
+		    if(activateprint) cout <<  mygraph->VRP_capacity << " de capacité par véhicule" << endl; 	  
 		}
 		else if(strcmp(word.c_str(), "NODE_COORD_SECTION") == 0) {
 			reading_nodecoordsection = true;
-			cout << "NODE_COORD_SECTION" << endl;
+			if(activateprint) cout << "NODE_COORD_SECTION" << endl;
 		}
 		else if (reading_nodecoordsection == true) {
 			int id = 0;
@@ -125,7 +125,7 @@ C_Graph* parseVRPfile(string filename)
 
 			sstream >> mygraph->get_node_by_id_startat1(id)->x;	//x
 			sstream >> mygraph->get_node_by_id_startat1(id)->y;	//y
-			cout << "lecture coordonnée : noeud " << id << " at (" << mygraph->get_node_by_id_startat1(id)->x << ", " << mygraph->get_node_by_id_startat1(id)->y << ")" << endl;
+			if(activateprint) cout << "lecture coordonnée : noeud " << id << " at (" << mygraph->get_node_by_id_startat1(id)->x << ", " << mygraph->get_node_by_id_startat1(id)->y << ")" << endl;
 
 			if (id == mygraph->nb_nodes) {
 				reading_nodecoordsection = false;	//so that we can read the next section title after
@@ -135,14 +135,14 @@ C_Graph* parseVRPfile(string filename)
 		
 		else if(strcmp(word.c_str(), "DEMAND_SECTION") == 0) {
 			reading_demandsection = true;
-			cout << "DEMAND_SECTION" << endl;
+			if(activateprint) cout << "DEMAND_SECTION" << endl;
 		}
 		else if (reading_demandsection == true){
 			int id = 0;
 			sstream >> id;
 			sstream >> mygraph->get_node_by_id_startat1(id)->VRP_demand;
 
-			cout << "lecture demande : noeud " << id << " demands " << mygraph->get_node_by_id_startat1(id)->VRP_demand << endl;
+			if(activateprint) cout << "lecture demande : noeud " << id << " demands " << mygraph->get_node_by_id_startat1(id)->VRP_demand << endl;
 
 			if (id == mygraph->nb_nodes) {
 				reading_demandsection = false;	//so that we can read the next section title after
@@ -153,7 +153,7 @@ C_Graph* parseVRPfile(string filename)
 			//do nothing
 		}       
 	}
-	cout << "END OF FILE READING" << endl;
+	if(activateprint) cout << "END OF FILE READING" << endl;
 
 	C_link *a;
 	int k = 0;
@@ -180,18 +180,18 @@ C_Graph* parseVRPfile(string filename)
 		if(print_links) cout << endl;
 	}
 
-	cout << k <<" LINKS CONSTRUITS" << endl;
+	if(activateprint) cout << k <<" LINKS CONSTRUITS" << endl;
 
 	if(mygraph->directed == false)	
 		mygraph->construct_Undirected_Lemon_Graph();
 	else 
 		mygraph->construct_Directed_Lemon_Graph();
 
-	cout << "LEMON OK" << endl;
+	if(activateprint) cout << "LEMON OK" << endl;
 
 	inFile.close();
 
-	cout << "*** FILE CLOSED" << endl;
+	if(activateprint) cout << "*** FILE CLOSED" << endl;
 	cout << "*** FILE SUCCESSFULLY LOADED INTO C_Graph" << endl;
 
 	//test C_node->getDistanceFrom()

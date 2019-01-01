@@ -11,10 +11,10 @@
 
 using namespace std;
 
-bool activateoutput = true; //active this to print outputs & visualisation to pdf file
+//main function is at the end of this file
 
 ///////////////////////////////
-///////////////////////////////
+/////////////////////////////// NOTES 
 
 // MIP formulation for the BinPacking problem
 // Given a graph G=(V,E)
@@ -31,37 +31,17 @@ plus grand de tourn´ees; puis en confiant l’objectif de r´eduire le nombre d
 ///////////////////////////////
 ///////////////////////////////
 
-int main (int argc, char**argv){
+//renvoie en return le nombre de boites utilisées, modifie le vecteur solution pour mettre la solution dedans
+//bool activateoutput = true; //active this to print outputs & visualisation to pdf file
+int solve_relaxedPLNE(C_Graph* G, string filename, vector<int> *solution_vec_out, bool activateprint, bool activateoutput) {
 
   string name,nameext,nameextsol;
   int i,j;
   list<int>::const_iterator it;
 
-  //vector<int> sol;
-
-  //////////////
-  //////  DATA
-  //////////////
-
-  if(argc!=2){
-    cerr<<"usage: "<<argv[0]<<" filename.vrp"<<endl; 
-    return 1;
-  }
-
-  name=argv[1];
+  name=filename;
   nameext=name+".dim";
   nameextsol=name+".color";
-
-
-  string filename = argv[1];
-
-  C_Graph* G = parseVRPfile(filename);
-
-  //C_node* cnode = graph_ptr->get_node_by_id(1);    //exemple d'utilisation
-  //(*G).nb_nodes;    // G->nb_nodes;                //both mean the same here
-
-  //C_node* cnode  = (*G).get_node_by_id_startat1(1);   //example
-
 
   //////////////
   //////  CPLEX INITIALIZATION
@@ -70,14 +50,12 @@ int main (int argc, char**argv){
   IloEnv   env;
   IloModel model(env);
 
-
   ////////////////////////
   //////  VAR
   ////////////////////////
 
   //N borne sup sur le nombre de boites à utiliser (au pire on met chaque objet dans sa propre boite)
   int N = (*G).nb_nodes; // N = |V|
-
   //y
   vector<IloNumVar> y;
   y.resize(N); 
@@ -85,8 +63,6 @@ int main (int argc, char**argv){
   ///////     
   ///////     IMPORTANT : ALL LOOPS START AT 1 BECAUSE THE FIRST NODE IS THE DEPOT AND WE DON'T WANT IT HERE
   ///////     
-
-
 
   //y_j var binaire {0,1}, égale à 1 si la boîte  j est utilisée, 0 sinon.
   for(j = 1; j < N; j++) {
@@ -97,25 +73,6 @@ int main (int argc, char**argv){
     y[j].setName(varname.str().c_str());
   }
 
-  //x_i_j € {0,1}
-  /*vector<vector<IloNumVar> > x;
-  x.resize(N-1); //don't use the depot
-  
-  for (i=1;i < N;i++)
-    x[i-1].resize(N-1);
-  
-  for (i=1;i< N;i++){
-    for (j=1;j< N;j++) {
-      if (i!=j){
-        x[i-1][j-1]=IloNumVar(env, 0.0, 1.0, ILOINT);
-        ostringstream varname;
-        varname.str("");
-        varname<<"x_"<<i<<"_"<<j;
-        x[i-1][j-1].setName(varname.str().c_str());
-      }
-    }
-  }
-  */
   //x_i_j € {0,1}
   vector<vector<IloNumVar> > x;
   x.resize(N); 
@@ -137,7 +94,6 @@ int main (int argc, char**argv){
   //////////////
   //////  CST
   //////////////
-
 
   IloRangeArray CC(env);
   int nbcst=0;
@@ -168,7 +124,7 @@ int main (int argc, char**argv){
     ostringstream cstname;
     cstname.str("");
     cstname<<"Cst_firstype_"<<j;
-    cout << cstname.str().c_str() << endl;
+    if(activateprint) cout << cstname.str().c_str() << endl;
     CC[nbcst].setName(cstname.str().c_str());
     nbcst++;
   }
@@ -191,13 +147,12 @@ int main (int argc, char**argv){
     ostringstream cstname;
     cstname.str("");
     cstname<<"Cst_secondtype_"<<i;
-    cout << cstname.str().c_str() << endl;
+    if(activateprint) cout << cstname.str().c_str() << endl;
     CC[nbcst].setName(cstname.str().c_str());
     nbcst++;
   }
 
   model.add(CC);
-
 
   //////////////
   ////// OBJ
@@ -215,6 +170,8 @@ int main (int argc, char**argv){
   //////////
 
   IloCplex cplex(model);
+
+  if(activateprint==false) cplex.setOut(env.getNullStream());
 
   // cplex.setParam(IloCplex::Cliques,-1);
   // cplex.setParam(IloCplex::Covers,-1);
@@ -240,7 +197,6 @@ int main (int argc, char**argv){
     env.error() << "Failed to optimize LP" << endl;
     exit(1);
   }
-
  
   env.out() << "Solution status = " << cplex.getStatus() << endl;
   env.out() << "Solution value  = " << cplex.getObjValue() << endl;
@@ -256,7 +212,8 @@ int main (int argc, char**argv){
     for(j=1; j < N; j++) {
       if(cplex.getValue(x[i][j]) == 1) {
         val = j; //article i rangé dans la boite j
-        cout << "article_" << i <<"\t\tin box : " << j << endl;
+        if(activateprint) cout << "article_" << i <<"\t\tin box : " << j << endl;
+        solution_vec_out->push_back(j);
         break;
       }
     }
@@ -269,12 +226,11 @@ int main (int argc, char**argv){
       sol_nb_box++; //y_j égale à 1 si la boite j est utilisée
     }
   }
-  cout << sol_nb_box << " BOXES USED " << endl;
+  if(activateprint) cout << sol_nb_box << " BOXES USED " << endl;
 
   //////////////
   //////  CPLEX's ENDING
   //////////////
-
   env.end();
 
   //////////////
@@ -297,7 +253,6 @@ int main (int argc, char**argv){
     ////// second output using the viewerColor
     //////////////
 
-    
     // NOW we write the output files as .color and .pdf
 
     // save to .color and reload it from the file
@@ -322,7 +277,45 @@ int main (int argc, char**argv){
     G->write_dot_G_color(name.c_str(),sol);
     cout << "wrote visualisation of solution to file: " << name.c_str() << "_G_color.pdf" << endl;
 
+  } // end of :  if(activateoutput) {
+
+  // return number of boxes used
+  return sol_nb_box ;
+}
+
+
+int main (int argc, char**argv){
+
+  //////////////////////////////
+  ///////// PARAMETERS /////////
+  //////////////////////////////
+
+  bool activateprint = false;
+  bool activateoutput = false;
+
+  ////////////////////////////// end of parameters
+
+  vector<int> solution_vec;
+
+  if(argc!=2){
+    cerr<<"usage: "<<argv[0]<<" filename.vrp"<<endl; 
+    return 1;
   }
+  string filename = argv[1];
+
+  C_Graph* G = parseVRPfile(filename, activateprint);
+  //C_node* cnode = graph_ptr->get_node_by_id(1);    //exemple d'utilisation
+  //(*G).nb_nodes;    // G->nb_nodes;                //both mean the same here
+  //C_node* cnode  = (*G).get_node_by_id_startat1(1);   //example
+
+  int nb_box_used = solve_relaxedPLNE(G, filename, &solution_vec, activateprint, activateoutput); //last paramter is write_outputs?, befre-last is print?
+
+  //print solution found by relaxed PLNE
+  cout << "ND BOXES USED : " << nb_box_used << endl;
+  cout << "SOLUTION : ";
+  for(int i = 0; i < solution_vec.size(); i++)
+        cout << solution_vec.at(i) << " " ;
+  cout << endl;
 
   return 0;
 }
