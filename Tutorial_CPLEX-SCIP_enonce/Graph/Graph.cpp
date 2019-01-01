@@ -361,6 +361,61 @@ void C_Graph::write_dot_G_color(string InstanceName, vector<int>& coloring){
 }
 
 
+void C_Graph::write_dot_G_color_svg(string InstanceName, vector<int>& coloring){
+  int i,k;
+  ostringstream FileName; 
+  FileName.str("");
+  FileName <<InstanceName.c_str() << "_G_color.dot";
+
+  vector <string> colors;
+  colors.push_back("green");
+  colors.push_back("blue");
+  colors.push_back("red");
+  colors.push_back("cyan");
+  colors.push_back("yellow");
+  colors.push_back("magenta");
+  colors.push_back("darkorchid");
+  colors.push_back("darkorange");
+  colors.push_back("deeppink");
+  colors.push_back("forestgreen");
+  colors.push_back("indigo");
+  colors.push_back("midnightblue");
+  colors.push_back("violetred");
+
+  int chi=0;
+  for (i=0;i<nb_nodes;i++)
+    if (chi<coloring[i]) chi=coloring[i];
+
+  
+  if(chi >= (int)colors.size()){
+    cout<<"We only have 13 colors and this solutions needs "<<chi<<" colors... some nodes will have wrong colors!"<<endl;
+  }
+  
+  ofstream fic(FileName.str().c_str());
+  fic<<"graph G {"<<endl;
+  
+  for(i=0 ; i<nb_nodes ; i++){
+    fic<<"  "<<V_nodes[i].num<<"[shape = octagon, style = filled , fillcolor = "<<colors[(coloring[V_nodes[i].num]) % colors.size()]<<" ]"<<endl;
+  }
+  
+  for(k=0 ; k<nb_links ; k++){
+      fic<<"  \""<<V_links[k]->v1<<"\"--\""<<V_links[k]->v2<<"\";"<<endl;
+  }
+  
+  fic<<"}"<<endl;
+    
+  fic.close();
+
+  ostringstream commande; 
+  commande.str("");
+  commande<<GRAPHVIZ<<"dot -Tsvg -o "<<InstanceName.c_str() << "_G_color.svg "<< FileName.str().c_str()<<endl;
+  cout<<commande.str().c_str();
+  if (system(commande.str().c_str())){cout<<"SVG generated successfully"<<endl;}
+  
+
+}
+
+
 
 void C_Graph::write_dot_directed_G_induced(string InstanceName, vector<int>& sol){
   int i,k;

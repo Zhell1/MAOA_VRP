@@ -208,7 +208,7 @@ int solve_relaxedPLNE(C_Graph* G, string filename, vector<int> *solution_vec_out
 
   ///////
   /////// retrieving solution
-
+  ////////////////:
   vector<int>   sol_x_i;
 
   sol_x_i.resize(N);
@@ -279,8 +279,11 @@ int solve_relaxedPLNE(C_Graph* G, string filename, vector<int> *solution_vec_out
     fic2.close();
 
     // create PDF with solution
-    G->write_dot_G_color(name.c_str(),sol);
-    cout << "wrote visualisation of solution to file: " << name.c_str() << "_G_color.pdf" << endl;
+    //G->write_dot_G_color(name.c_str(),sol);
+    //cout << "wrote visualisation of solution to file: " << name.c_str() << "_G_color.pdf" << endl;
+
+    //create svg with solution
+    G->write_dot_G_color_svg(name.c_str(),sol);
 
   } // end of :  if(activateoutput) {
 

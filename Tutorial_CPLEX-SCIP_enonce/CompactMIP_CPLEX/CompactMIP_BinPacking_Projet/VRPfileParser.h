@@ -76,12 +76,15 @@ C_Graph* parseVRPfile(string filename, bool activateprint)
 		string word;
 		if( !reading_nodecoordsection && !reading_demandsection ){
 			sstream >> word;
-			// cout << word << endl;
+			//cout << word << endl;
 		}
 
-		if(strcmp(word.c_str(), "DIMENSION") == 0) {
-		    sstream >> word; // ':'
-		    sstream >> mygraph->nb_nodes;//int value
+		if(strstr(word.c_str(), "DIMENSION") != nullptr) { // checks if S1 contains S2
+			
+			while(sstream.peek() == ' ') { sstream.ignore(); } // ignore spaces
+			if(sstream.peek() == ':') sstream >> word; // and pass ':' if there is one
+
+		    sstream >> (mygraph->nb_nodes);//read the first int value in the stream
 		    if(activateprint) cout <<  mygraph->nb_nodes << " noeuds" << endl; 
 		    int n = mygraph->nb_nodes ; 
 		    if(mygraph->directed == true){
@@ -103,50 +106,64 @@ C_Graph* parseVRPfile(string filename, bool activateprint)
 		    }
 		    
 		}
-		else if(strcmp(word.c_str(), "CAPACITY") == 0) {
-		    sstream >> word; // ':'
+		else if(strstr(word.c_str(), "CAPACITY") != nullptr) { // checks if S1 contains S2
+			while(sstream.peek() == ' ') { sstream.ignore(); } // ignore spaces
+			if(sstream.peek() == ':') sstream >> word; // and pass ':' if there is one
+
 		    sstream >> mygraph->VRP_capacity; // int value  
 		    if(activateprint) cout <<  mygraph->VRP_capacity << " de capacité par véhicule" << endl; 	  
 		}
-		else if(strcmp(word.c_str(), "NODE_COORD_SECTION") == 0) {
+		else if(strstr(word.c_str(), "NODE_COORD_SECTION") != nullptr) { // checks if S1 contains S2
 			reading_nodecoordsection = true;
 			if(activateprint) cout << "NODE_COORD_SECTION" << endl;
 		}
 		else if (reading_nodecoordsection == true) {
 			int id = 0;
 			sstream >> id;	//id
+			//cout << "reading node id " << id << endl;
+			if(id == 0) { // problem, no id should be 0 since we start at 1
+				reading_nodecoordsection = false;
+				if(activateprint) cout << "DEMAND_SECTION" << endl;
+				reading_demandsection = true; //pass to next section
+			}
+			else {
+				//!\\ /!\																		/!\
+				//!\\ /!\  mygraph->get_node_by_id(id)  =   mygraph->V_nodes[id-1] 				/!\
+				//!\\ /!\																		/!\
+				//!\\ /!\                 using get_node_by_id() is safer						/!\
+				//!\\ /!\			         because files starts at 1							/!\
+				//!\\ /!\																		/!\
 
-			//!\\ /!\																		/!\
-			//!\\ /!\  mygraph->get_node_by_id(id)  =   mygraph->V_nodes[id-1] 				/!\
-			//!\\ /!\																		/!\
-			//!\\ /!\                 using get_node_by_id() is safer						/!\
-			//!\\ /!\			         because files starts at 1							/!\
-			//!\\ /!\																		/!\
+				sstream >> mygraph->get_node_by_id_startat1(id)->x;	//x
+				sstream >> mygraph->get_node_by_id_startat1(id)->y;	//y
+				if(activateprint) cout << "lecture coordonnée : noeud " << id << " at (" << mygraph->get_node_by_id_startat1(id)->x << ", " << mygraph->get_node_by_id_startat1(id)->y << ")" << endl;
 
-			sstream >> mygraph->get_node_by_id_startat1(id)->x;	//x
-			sstream >> mygraph->get_node_by_id_startat1(id)->y;	//y
-			if(activateprint) cout << "lecture coordonnée : noeud " << id << " at (" << mygraph->get_node_by_id_startat1(id)->x << ", " << mygraph->get_node_by_id_startat1(id)->y << ")" << endl;
-
-			if (id == mygraph->nb_nodes) {
-				reading_nodecoordsection = false;	//so that we can read the next section title after
-				//OK VÉRIFIE
+				if (id == mygraph->nb_nodes) {
+					reading_nodecoordsection = false;	//so that we can read the next section title after
+					//OK VÉRIFIE
+				}
 			}
 		}
 		
-		else if(strcmp(word.c_str(), "DEMAND_SECTION") == 0) {
+		else if(strstr(word.c_str(), "DEMAND_SECTION") != nullptr) { // checks if S1 contains S2
 			reading_demandsection = true;
 			if(activateprint) cout << "DEMAND_SECTION" << endl;
 		}
 		else if (reading_demandsection == true){
 			int id = 0;
 			sstream >> id;
-			sstream >> mygraph->get_node_by_id_startat1(id)->VRP_demand;
+			if(id == 0) { // problem, no id should be 0 since we start at 1
+				reading_demandsection = false;
+			}
+			else{
+				sstream >> mygraph->get_node_by_id_startat1(id)->VRP_demand;
 
-			if(activateprint) cout << "lecture demande : noeud " << id << " demands " << mygraph->get_node_by_id_startat1(id)->VRP_demand << endl;
+				if(activateprint) cout << "lecture demande : noeud " << id << " demands " << mygraph->get_node_by_id_startat1(id)->VRP_demand << endl;
 
-			if (id == mygraph->nb_nodes) {
-				reading_demandsection = false;	//so that we can read the next section title after
-				//OK VÉRIFIE
+				if (id == mygraph->nb_nodes) {
+					reading_demandsection = false;	//so that we can read the next section title after
+					//OK VÉRIFIE
+				}
 			}
 		}
 		else {

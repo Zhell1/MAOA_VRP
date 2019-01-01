@@ -17,8 +17,8 @@ int main (int argc, char**argv){
   //////////////////////////////
   ///////// PARAMETERS /////////
   //////////////////////////////
-  bool activateprint = false;
-  bool activateoutput = false;
+  bool activateprint  = true;
+  bool activateoutput = true;
   ////////////////////////////// end of parameters
 
   vector<int> solution_vec;

@@ -136,6 +136,9 @@ public:
 
   // Write a Graphviz File with the DOT format using a coloration vector
   void write_dot_G_color(string InstanceName, vector<int> &coloring);
+
+
+  void write_dot_G_color_svg(string InstanceName, vector<int>& coloring); // added thomas
   
   // Write a Graphviz File with the DOT DIRECTED format using a induced subgraph
   void write_dot_directed_G_induced(string InstanceName, vector<int>& sol);
