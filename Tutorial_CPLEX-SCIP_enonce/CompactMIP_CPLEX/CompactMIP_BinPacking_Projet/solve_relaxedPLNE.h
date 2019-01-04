@@ -130,7 +130,7 @@ int solve_relaxedPLNE(C_Graph* G, string filename, vector<int> *solution_vec_out
     CC.add(cst<=0);
     ostringstream cstname;
     cstname.str("");
-    cstname<<"Cst_firstype_"<<j;
+    cstname<<"Cst_firstype_"<<j << "  " << cst;
     if(activateprint) cout << cstname.str().c_str() << endl;
     CC[nbcst].setName(cstname.str().c_str());
     nbcst++;
@@ -171,7 +171,7 @@ int solve_relaxedPLNE(C_Graph* G, string filename, vector<int> *solution_vec_out
   for (j = 1; j < N ; j++){
     obj.setLinearCoef(y[j],1);
   }
- 
+
   ///////////
   //// RESOLUTION
   //////////
@@ -211,9 +211,13 @@ int solve_relaxedPLNE(C_Graph* G, string filename, vector<int> *solution_vec_out
   ///////
   /////// retrieving solution
   ////////////////:
+
+  //on affiche les valeurs des boites (1=utilisé, 0=inutile)
+  //for(int j = 1; j < N; j++)
+  //  cout << j<< " -> " << cplex.getValue(y[j]) << endl;
+
   vector<int>   sol_x_i;
   vector<int> unique_values = {};
-  int z = 1;
   sol_x_i.resize(N);
   for(i = 1; i < N; i++) {
     int val = 0;
@@ -239,7 +243,7 @@ int solve_relaxedPLNE(C_Graph* G, string filename, vector<int> *solution_vec_out
   std::cout << "\n";
   //on génère une map qui associe à chaque valeur sa position à partir de 1
   unordered_map<int, int> map_values;
-  z = 1;
+  int z = 1;
   cout << "map_values : " ;
   for (int i : unique_values) {
      map_values.insert(std::make_pair(i, z));
