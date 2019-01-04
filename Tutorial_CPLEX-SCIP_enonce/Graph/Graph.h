@@ -94,9 +94,11 @@ public:
   // Additional encoding: a vector on the edges (on pointers over edges)
   vector <C_link*> V_links;
 
-  /******* VRP functions added ********/
+  /******* VRP functions added ********/ // added thomas
   C_node* get_node_by_id_startat1(int id); //added thomas
   C_node* get_node_by_id_startat0(int id); // added thomas
+
+  float get_distance_startat0(int node1, int node2);
 
   //prend tournée sans le sommet 0, numérotée de 1 à N (ex: {15, 16, 17, 19, 21, 29} )
   //renvoie le cout total de la tournée **en prenant en compte le sommet 0** !

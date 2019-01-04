@@ -12,6 +12,13 @@
 
 using namespace std;
 
+string vectorint_tostring(vector<int> my_vector) {
+  std::stringstream result;
+  std::copy(my_vector.begin(), my_vector.end(), std::ostream_iterator<int>(result, " "));
+  return result.str().c_str();
+}
+
+
 int main (int argc, char**argv){
 
   //////////////////////////////
@@ -65,8 +72,7 @@ int main (int argc, char**argv){
         tous les circuits commencent par le sommet 0 et finissent au sommet 0
 
         -> fonction: parcourir les tournées de la solution une par une et selectionner le premier mouvement améliorant la tournée
-              jusqu'à ce qu'il n'y en ait plus.
-              https://fr.wikipedia.org/wiki/2-opt
+              jusqu'à ce qu'il n'y en ait plus.   https://fr.wikipedia.org/wiki/2-opt
           
         -> fonction : voisinage "possibilité pour un client de changer de tournées"
         -> alterner entre les 2 heuristiques précédentes jusqu'à ne plus avoir d'amélioration (mais commencer par le client qui change de tournée)
@@ -101,28 +107,65 @@ int main (int argc, char**argv){
   cout << "\t total_cost = " << G->get_VRP_cost(tournees) << endl;
 
   //voisinage 2opt pour optimiser chaque tournée indépendament
+  cout << "\n***\n*** starting 2opt optimization of internal routes ***\n***"<< endl;
 
   //on parcours toutes les tournées une par une : 
-  for(int i = 0; i < nb_box_used; i++) {
-    vector<int> *tournee = &(tournees.at(i)); // passe par un pointeur pour pouvoir modifier direct les valeurs
+  for(int ibox = 0; ibox < nb_box_used; ibox++) {
+    vector<int> *tournee = &(tournees.at(ibox)); // passe par un pointeur pour pouvoir modifier direct les valeurs
     //tournee->at(0) = 1000; cout << tournees.at(i).at(0) << " ???"<< endl; // test de modification OK
+    cout << "tournee #"<<ibox<<" initial cost = " << G->get_route_cost(*tournee) << endl; 
     //on cherche un 2opt avec meilleur cout
     bool amelioration = true;
+    bool print_alldebug_2opt = false;
     while (amelioration) {
       amelioration = false;
-      //pour tout sommet xi de la tournée
-      for(int xi = 0; xi < tournee.size(); xi++) {
-        //pour tout sommet xj de la tournée (avec j != i-1, i et i+1 car échanger une arete par elle même change rien)
-        for(int xj = 0; xj < tournee.size() && xj != xi && xj != xi-1 && xj != xi+1; xj++) {
-          //si l'échange de ces deux arêtes donne une meilleure distance
-          if() { //TODO
-            //remplacer les arêtes
-            //TODO
-            amelioration = true;
+      //pour tout sommet xi de la tournée 
+      for(int i = 0; i < tournee->size()-1; i++) {
+        //pour tout sommet xj de la tournée 
+        for(int j = 0; j < tournee->size()-1; j++) {
+          int xi = tournee->at(i); //important de le faire ici pour MAJ tout le temps
+          int xi_plus1 = tournee->at(i+1);
+          int xj = tournee->at(j);
+          int xj_plus1 = tournee->at(j+1);
+          //(avec j != i-1, i et i+1 car échanger une arete par elle même dans l'autre sens ne change rien)
+          if(j != i && j != i-1 && j != i+1) {
+            //si l'échange de ces deux arêtes donne une meilleure distance
+            float curr_distance = G->get_distance_startat0(xi, xi_plus1) +G->get_distance_startat0(xj, xj_plus1);
+            float new_distance  = G->get_distance_startat0(xi, xj)   +G->get_distance_startat0(xi_plus1, xj_plus1); 
+            if(new_distance < curr_distance) { //si amélioration
+              if(print_alldebug_2opt) cout << "\t2opt improvement found : " << new_distance << " from " << curr_distance << endl;
+              //on remplace les arêtes (xi,xi+1) et (xj,xj+1) par (xi,xj) et (xi+1,xj+1) dans la tournée
+              // pour ça on inverse l'ordre de parcours dans le vecteur
+              //    + on inverse l'ordre de parcours de tous les noeuds entre ces 2 noeuds
+              // => remplacer xi+1 par xj (et inversement) et inverser l'ordre des noeuds entre eux
+              if(print_alldebug_2opt)cout << "\t\tbefore : " <<  vectorint_tostring(*tournee) << endl;
+              if(print_alldebug_2opt)cout << "\t\tinversement de (" << xi<<"->"<<xi_plus1 << ") et (" << xj<<"->"<<xj_plus1<<")" << endl;
+              tournee->at(i+1) = xj; //il faut faire -1 car on prends pas en compte le sommet 0 ici
+              tournee->at(j) = xi_plus1;
+              if(print_alldebug_2opt)cout << "\t\tbetween : " << vectorint_tostring(*tournee) << endl;
+              //boucle for qui inverse l'ordre des noeuds entre les deux 
+              vector<int> temp;
+              //on commence par copier la sous-liste
+              for(int z = i+2; z <= j-1; z++) {
+                  temp.push_back(tournee->at(z));
+              }
+              if(print_alldebug_2opt)cout << "\t\ttemp vector : " << vectorint_tostring(temp) << endl; 
+              //maintenant on remplace en inversant
+              int counter=0;
+              for(int z = i+2; z <= j-1; z++) {
+                  tournee->at(z) = temp.at(temp.size()-1-counter);
+                  counter++;
+              }
+              if(print_alldebug_2opt)cout << "\t\tafter : " << vectorint_tostring(*tournee) << endl;
+              if(print_alldebug_2opt)cout << "\t\ttournee #"<<ibox<<" new cost = " << G->get_route_cost(*tournee) << endl; 
+
+              amelioration = true; //et continuer à chercher des améliorations
+            }
           }
         }
       }
     }
+    cout << "\ttournee #"<<ibox<<" final cost = " << G->get_route_cost(*tournee) << endl; 
   }
 
 

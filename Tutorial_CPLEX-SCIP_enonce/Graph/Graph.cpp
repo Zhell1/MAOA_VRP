@@ -90,6 +90,10 @@ float C_Graph::get_VRP_cost(vector<vector<int>> tournees) {
 
   return total_cost;
 }
+
+float C_Graph::get_distance_startat0(int node1, int node2){
+  return get_node_by_id_startat0(node1)->getDistanceFrom_startat0(node2);
+}
 /***************** FIN VRP ADDED ****************************/
 
 
