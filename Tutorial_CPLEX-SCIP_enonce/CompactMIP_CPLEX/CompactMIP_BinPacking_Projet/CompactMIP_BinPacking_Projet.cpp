@@ -69,6 +69,7 @@ int main (int argc, char**argv){
               https://fr.wikipedia.org/wiki/2-opt
           
         -> fonction : voisinage "possibilité pour un client de changer de tournées"
+        -> alterner entre les 2 heuristiques précédentes jusqu'à ne plus avoir d'amélioration (mais commencer par le client qui change de tournée)
         -> peut-être ajouter métaheuristique en ajoutant une tournée vide au début qu'on supprime ensuite ?
   */
   //création du vecteur de vecteurs contenant toutes les tournées (sans le sommet 0):
@@ -99,11 +100,27 @@ int main (int argc, char**argv){
   }
   cout << "\t total_cost = " << G->get_VRP_cost(tournees) << endl;
 
+  //voisinage 2opt pour optimiser chaque tournée indépendament
 
+  //on parcours toutes les tournées une par une : 
+  for(int i = 0; i < nb_box_used; i++) {
+      float currcost = G->get_route_cost(tournees.at(i));
+      //on cherche un 2opt avec meilleur cout
+      //TODO
+  }
 
 
   ///////////////////////////////////////////////////////////////////////////////////// fin métaheuristique itérative par voisinage
   
+
+  /*
+  thomas @Baptiste:
+        tu peux repartir de la solution dans "tournees" comme solution initiale (borne) 
+           pour faire la partie 1.0.2 Formulations PLNE pour le VRP
+
+        attention dans nos instances les couts sont symétriques donc il faut changer les
+          formulations du sujet par des variables non-orientées !!
+  */
 
   return 0;
 }
