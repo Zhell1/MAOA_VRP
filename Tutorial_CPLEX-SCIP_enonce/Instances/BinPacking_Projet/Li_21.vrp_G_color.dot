@@ -559,7 +559,7 @@ graph G {
   558[shape = octagon, style = filled , fillcolor = cyan ]
   559[shape = octagon, style = filled , fillcolor = darkorange ]
   560[shape = octagon, style = filled , fillcolor = red ]
-  561[shape = octagon, style = filled , fillcolor = yellow ]
+  561[shape = octagon, style = filled , fillcolor = green ]
   "0"--"1";
   "0"--"2";
   "0"--"3";

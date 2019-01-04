@@ -63,6 +63,33 @@ float C_node::getDistanceFrom_startat1(int idj){
 float C_node::getDistanceFrom_startat0(int idj){ 
   return getDistanceFrom_startat1(idj+1);
 }
+
+// OK VERIFIE
+float C_Graph::get_route_cost(vector<int> route) {
+  float cost = 0;
+  //sommet 0 au premier noeud
+  cost += get_node_by_id_startat0(0)->getDistanceFrom_startat0(route.at(0));
+  //cout << "(0->"<<route.at(0)<<") ";
+  //parcours des arcs de la tournée
+  for(int i = 0; i < route.size()-1; i++) {
+      cost += get_node_by_id_startat0(route.at(i))->getDistanceFrom_startat0(route.at(i+1));
+      //cout << "("<<route.at(i)<<"->"<<route.at(i+1)<<") ";
+  }
+  //du dernier noeud au sommet 0 (pour fermer la boucle)
+  cost += get_node_by_id_startat0(0)->getDistanceFrom_startat0(route.at(route.size()-1));
+  //cout << "("<<route.at(route.size()-1)<<"->0)" << endl;
+  // retourne la cout total
+  return cost;
+}
+float C_Graph::get_VRP_cost(vector<vector<int>> tournees) {
+  float total_cost = 0;
+
+  for(int i = 0; i < tournees.size(); i++) {
+    total_cost += get_route_cost(tournees.at(i));
+  }
+
+  return total_cost;
+}
 /***************** FIN VRP ADDED ****************************/
 
 

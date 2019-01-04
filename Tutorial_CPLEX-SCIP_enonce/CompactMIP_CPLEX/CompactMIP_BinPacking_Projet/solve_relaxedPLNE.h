@@ -253,7 +253,7 @@ int solve_relaxedPLNE(C_Graph* G, string filename, vector<int> *solution_vec_out
     sol_x_i[i] = map_values.at(sol_x_i[i]);
     //cout << "sol_x_i["<<i<<"] = "<<sol_x_i[i]<< endl;;
   }
-  cout << endl;
+  //cout << endl;
 
   // FIN du traitement de sol_x_i
 

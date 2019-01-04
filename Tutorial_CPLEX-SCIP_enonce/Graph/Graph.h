@@ -22,7 +22,7 @@ class C_link{
 public:
   int num;      // Number of the edge
 
-  //v1 and v2 are from [0, nbnodes], better use getidv1() and getidv2()
+  //thomas: v1 and v2 are from [0, nbnodes], better use getidv1_startat1() and getidv2_startat1()
   int v1, v2;   // The two extremities of an edge v1v2 or of an arc (v1,v2)
   
   float length; // should be set from the start
@@ -35,8 +35,8 @@ public:
   void set_algo_cost(double v);
 
   float getDistance(); //returns this.length //added 
-  int getidv1_startat1(); //added
-  int getidv2_startat1();//added
+  int getidv1_startat1(); //added thomas
+  int getidv2_startat1();//added thomas
 
    /******** Lemon structure ****/
    lemon::ListGraph::Edge LGU_name;
@@ -63,8 +63,8 @@ public :
    bool test_successor(int j);
 
    //return EUC_2D distance to other node
-   float getDistanceFrom_startat0(int idj);  //added //ok verifié
-   float getDistanceFrom_startat1(int idj);  //added
+   float getDistanceFrom_startat0(int idj);  //added thomas //ok verifié
+   float getDistanceFrom_startat1(int idj);  //added thomas
 
    /******** Lemon structure ****/
    lemon::ListGraph::Node LGU_name;
@@ -95,8 +95,14 @@ public:
   vector <C_link*> V_links;
 
   /******* VRP functions added ********/
-  C_node* get_node_by_id_startat1(int id); //added
-  C_node* get_node_by_id_startat0(int id);
+  C_node* get_node_by_id_startat1(int id); //added thomas
+  C_node* get_node_by_id_startat0(int id); // added thomas
+
+  //prend tournée sans le sommet 0, numérotée de 1 à N (ex: {15, 16, 17, 19, 21, 29} )
+  //renvoie le cout total de la tournée **en prenant en compte le sommet 0** !
+  float get_route_cost(vector<int> route); //added thomas
+  //similaire à ci-dessus mais cette fois avec toutes les tournées d'un coup en entrée
+  float get_VRP_cost(vector<vector<int>> tournees);
   /************************************/
 
   /*********************************************/
