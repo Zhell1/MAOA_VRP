@@ -104,9 +104,25 @@ int main (int argc, char**argv){
 
   //on parcours toutes les tournées une par une : 
   for(int i = 0; i < nb_box_used; i++) {
-      float currcost = G->get_route_cost(tournees.at(i));
-      //on cherche un 2opt avec meilleur cout
-      //TODO
+    vector<int> *tournee = &(tournees.at(i)); // passe par un pointeur pour pouvoir modifier direct les valeurs
+    //tournee->at(0) = 1000; cout << tournees.at(i).at(0) << " ???"<< endl; // test de modification OK
+    //on cherche un 2opt avec meilleur cout
+    bool amelioration = true;
+    while (amelioration) {
+      amelioration = false;
+      //pour tout sommet xi de la tournée
+      for(int xi = 0; xi < tournee.size(); xi++) {
+        //pour tout sommet xj de la tournée (avec j != i-1, i et i+1 car échanger une arete par elle même change rien)
+        for(int xj = 0; xj < tournee.size() && xj != xi && xj != xi-1 && xj != xi+1; xj++) {
+          //si l'échange de ces deux arêtes donne une meilleure distance
+          if() { //TODO
+            //remplacer les arêtes
+            //TODO
+            amelioration = true;
+          }
+        }
+      }
+    }
   }
 
 
