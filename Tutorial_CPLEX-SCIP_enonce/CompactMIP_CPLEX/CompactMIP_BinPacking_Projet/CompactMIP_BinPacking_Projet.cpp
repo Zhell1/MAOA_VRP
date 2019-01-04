@@ -18,14 +18,29 @@ string vectorint_tostring(vector<int> my_vector) {
   return result.str().c_str();
 }
 
+void print_all_tournees(vector<vector<int>> tournees, C_Graph* G) {
+  int nb_box_used = tournees.size();
+  //on affiche toutes les tournées et leurs couts:
+  cout << "tournées : "<< endl;
+  //pour chacune des tournées
+  for(int i = 0; i < nb_box_used; i++) {
+      cout << "\t tournée #"<<i<< " (cost= "<< G->get_route_cost(tournees.at(i)) << ") : ";
+      //on lit toute la tournée
+      for(int j = 0; j < tournees.at(i).size(); j++){
+          //on extrait les sommets de la tournée à enregistrer
+          cout << tournees.at(i).at(j) <<" ";
+      }
+      cout << endl;
+  }
+  cout << "\t total_cost = " << G->get_VRP_cost(tournees) << endl;
+}
 
 int main (int argc, char**argv){
-
   //////////////////////////////
   ///////// PARAMETERS /////////
   //////////////////////////////
-  bool activateprint  = true;
-  bool activateoutput = false;
+  bool relaxedPLNE_activateprint  = false;
+  bool relaxedPLNE_activateoutput = false;
   ////////////////////////////// end of parameters
 
   vector<int> solution_vec;
@@ -36,14 +51,15 @@ int main (int argc, char**argv){
   }
   string filename = argv[1];
 
-  C_Graph* G = parseVRPfile(filename, activateprint);
+  C_Graph* G = parseVRPfile(filename, relaxedPLNE_activateprint);
   //C_node* cnode = graph_ptr->get_node_by_id(1);    //exemple d'utilisation
   //(*G).nb_nodes;    // G->nb_nodes;                //both mean the same here
   //C_node* cnode  = (*G).get_node_by_id_startat1(1);   //example
 
   //on solve par PLNE après avoir relaxé la contrainte de m tournées
-  int nb_box_used = solve_relaxedPLNE(G, filename, &solution_vec, activateprint, activateoutput); //last paramter is write_outputs?, befre-last is print?
+  int nb_box_used = solve_relaxedPLNE(G, filename, &solution_vec, relaxedPLNE_activateprint, relaxedPLNE_activateoutput); //last paramter is write_outputs?, befre-last is print?
 
+  cout << endl;
   //print solution found by relaxed PLNE
   cout << "NB BOXES USED : " << nb_box_used << endl;
   cout << "SOLUTION : ";
@@ -70,9 +86,6 @@ int main (int argc, char**argv){
     TODO:
         on peut décrire une tournée par une liste de sommets (i0, i1, ...ip) comme le graphe est complet.
         tous les circuits commencent par le sommet 0 et finissent au sommet 0
-
-        -> fonction: parcourir les tournées de la solution une par une et selectionner le premier mouvement améliorant la tournée
-              jusqu'à ce qu'il n'y en ait plus.   https://fr.wikipedia.org/wiki/2-opt
           
         -> fonction : voisinage "possibilité pour un client de changer de tournées"
         -> alterner entre les 2 heuristiques précédentes jusqu'à ne plus avoir d'amélioration (mais commencer par le client qui change de tournée)
@@ -92,31 +105,22 @@ int main (int argc, char**argv){
       }
       tournees.push_back(curr_tournee);
   }
+  cout << endl;
   //on affiche toutes les tournées et leurs couts:
-  cout << "tournées : "<< endl;
-  //pour chacune des tournées
-  for(int i = 0; i < nb_box_used; i++) {
-      cout << "\t tournée #"<<i<< " (cost= "<< G->get_route_cost(tournees.at(i)) << ") : ";
-      //on lit toute la tournée
-      for(int j = 0; j < tournees.at(i).size(); j++){
-          //on extrait les sommets de la tournée à enregistrer
-          cout << tournees.at(i).at(j) <<" ";
-      }
-      cout << endl;
-  }
-  cout << "\t total_cost = " << G->get_VRP_cost(tournees) << endl;
+  print_all_tournees(tournees, G);
 
   //voisinage 2opt pour optimiser chaque tournée indépendament
-  cout << "\n***\n*** starting 2opt optimization of internal routes ***\n***"<< endl;
+  cout << endl <<  "*** starting 2opt optimization of internal routes ***"<< endl;
+  bool print_alldebug_2opt = false;
 
   //on parcours toutes les tournées une par une : 
   for(int ibox = 0; ibox < nb_box_used; ibox++) {
     vector<int> *tournee = &(tournees.at(ibox)); // passe par un pointeur pour pouvoir modifier direct les valeurs
     //tournee->at(0) = 1000; cout << tournees.at(i).at(0) << " ???"<< endl; // test de modification OK
-    cout << "tournee #"<<ibox<<" initial cost = " << G->get_route_cost(*tournee) << endl; 
+    float initial_cost = G->get_route_cost(*tournee);
+    if(print_alldebug_2opt)cout << "tournee #"<<ibox<<" initial cost = " << initial_cost << endl; 
     //on cherche un 2opt avec meilleur cout
     bool amelioration = true;
-    bool print_alldebug_2opt = false;
     while (amelioration) {
       amelioration = false;
       //pour tout sommet xi de la tournée 
@@ -165,9 +169,11 @@ int main (int argc, char**argv){
         }
       }
     }
-    cout << "\ttournee #"<<ibox<<" final cost = " << G->get_route_cost(*tournee) << endl; 
+    cout << "\ttournee #"<<ibox<<"  cost : "<< initial_cost <<" -> " << G->get_route_cost(*tournee) << endl; 
   }
-
+  cout<<endl;
+  //on affiche toutes les tournées et leurs couts:
+  print_all_tournees(tournees, G);
 
   ///////////////////////////////////////////////////////////////////////////////////// fin métaheuristique itérative par voisinage
   
