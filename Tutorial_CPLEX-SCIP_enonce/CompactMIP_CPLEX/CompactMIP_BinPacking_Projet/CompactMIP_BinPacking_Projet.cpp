@@ -39,7 +39,7 @@ void optimize_2opt_internalRoutes(vector<vector<int>> *tournees, C_Graph* G) {
    //voisinage 2opt pour optimiser chaque tournée indépendament
   cout << endl <<  "*** starting 2opt optimization of internal routes ***"<< endl;
 
-  bool print_alldebug_2opt = false;
+  bool print_alldebug_2opt = true;
 
   int nb_box_used = tournees->size();
   //on parcours toutes les tournées une par une : 
@@ -53,9 +53,9 @@ void optimize_2opt_internalRoutes(vector<vector<int>> *tournees, C_Graph* G) {
     while (amelioration) {
       amelioration = false;
       //pour tout sommet xi de la tournée 
-      for(int i = 0; i < tournee->size()-1; i++) {
+      for(int i = 0; i < tournee->size()-1  && !amelioration ; i++) {
         //pour tout sommet xj de la tournée 
-        for(int j = 0; j < tournee->size()-1; j++) {
+        for(int j = 0; j < tournee->size()-1 && !amelioration; j++) {
           int xi = tournee->at(i); //important de le faire ici pour MAJ tout le temps
           int xi_plus1 = tournee->at(i+1);
           int xj = tournee->at(j);
@@ -106,7 +106,7 @@ void optimize_2opt_switchRoutes(vector<vector<int>> *tournees, C_Graph* G) {
   // voisinages de changement de tournées
   cout << endl <<  "*** starting 2opt optimization : agent switching routes ***"<< endl;
 
-  bool print_alldebug_2opt = false;
+  bool print_alldebug_2opt = true;
 
   int nb_box_used = tournees->size();
   int capaciteQ = (*G).VRP_capacity; // capacité max des véhicules
@@ -131,6 +131,7 @@ void optimize_2opt_switchRoutes(vector<vector<int>> *tournees, C_Graph* G) {
             //cout << " > client "<<currentclient << "   demande "<<currentclientdemande<< endl;
             //on commence par le supprimer de sa position actuelle
             //cout << "old : " << vectorint_tostring(copietemp.at(ibox)) << endl;
+            //cout << "before erase" << endl;
             tourneecopy.erase(tourneecopy.begin()+i); 
             //cout << "new : " << vectorint_tostring(copietemp.at(ibox)) << endl;
             //on regarde si on peut optimiser le cout total en le placant dans une autre tournée ailleurs
@@ -142,12 +143,17 @@ void optimize_2opt_switchRoutes(vector<vector<int>> *tournees, C_Graph* G) {
                       //cout << "\tcould be added to route #"<<other << " of demand : " << G->get_route_demand(copietemp.at(other)) << endl;
                       //on calcule le cout de toutes les autres tournées (pour pouvoir comparer rapidement après)
                       //c'est à dire le cout du VRP initial, moins le vecteur avant erase + le cout du vecteur après erase
+                      //cout << "lol"<<endl;
                       float VRPcost = G->get_VRP_cost(copietemp) - G->get_route_cost(copietemp.at(ibox)) + G->get_route_cost(tourneecopy);
+                      //cout << "mdr" << endl;
                       float allbutother_cost = VRPcost - G->get_route_cost(copietemp.at(other));
-                      int const_size =copietemp.at(other).size(); // we will change it so we must make it const here
+                      //cout << "ptdr" << endl;
+                      int const_size = copietemp.at(other).size(); // we will change it so we must make it const here
+                      //cout << "XD" << endl;
                       //on va travailler sur une copie du vecteur
                       //maintenant on regarde tous les emplacements dans cette tournée où on pourrait l'ajouter
                       for(int j = 0; j <= const_size && !amelioration; j++) { // <= car on peut ajouter en 1er ou dernier ici
+                          //if(const_size == 0) cout << "ALERT EMPTY ROUTE" << endl;
                           vector<int> vectorcopy_temp = copietemp.at(other); // nouvelle copie (sans pointeurs)
                           //vector->insert(iterator pos, const T& value); // insert l'élément value AVANT pos !!
                           //cout << "old2 : " << vectorint_tostring(vectorcopy_temp) << endl;
@@ -183,7 +189,7 @@ int main (int argc, char**argv){
   //////////////////////////////
   ///////// PARAMETERS /////////
   //////////////////////////////
-  bool relaxedPLNE_activateprint  = false;
+  bool relaxedPLNE_activateprint  = true;
   bool relaxedPLNE_activateoutput = false;
   ////////////////////////////// end of parameters
 

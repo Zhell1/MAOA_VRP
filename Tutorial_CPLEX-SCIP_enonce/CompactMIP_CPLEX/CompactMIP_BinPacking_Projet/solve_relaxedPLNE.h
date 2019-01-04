@@ -130,7 +130,7 @@ int solve_relaxedPLNE(C_Graph* G, string filename, vector<int> *solution_vec_out
     CC.add(cst<=0);
     ostringstream cstname;
     cstname.str("");
-    cstname<<"Cst_firstype_"<<j << "  " << cst;
+    cstname<<"Cst_firstype_"<<j ;//<< "  " << cst;
     if(activateprint) cout << cstname.str().c_str() << endl;
     CC[nbcst].setName(cstname.str().c_str());
     nbcst++;
@@ -253,9 +253,11 @@ int solve_relaxedPLNE(C_Graph* G, string filename, vector<int> *solution_vec_out
   cout << endl;
   //maintenant on va post-traité le vecteur de solution pour être sûr de n'avoir que des valeurs 1,2,3,4 etc
   //car on peut avoir des valeurs du style: 1,2,287,548.. surtout avec de grands graphes
+  solution_vec_out->clear();
   for(i = 1; i < N; i++) {
     sol_x_i[i] = map_values.at(sol_x_i[i]);
     //cout << "sol_x_i["<<i<<"] = "<<sol_x_i[i]<< endl;;
+    solution_vec_out->push_back(sol_x_i[i]);
   }
   //cout << endl;
 

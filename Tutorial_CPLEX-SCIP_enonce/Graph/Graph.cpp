@@ -55,6 +55,7 @@ float C_node::getDistanceFrom_startat0(int idj){
 
 // OK VERIFIE
 float C_Graph::get_route_cost(vector<int> route) {
+  if(route.size() == 0) return 0;
   float cost = 0;
   //sommet 0 au premier noeud
   cost += get_node_by_id_startat0(0)->getDistanceFrom_startat0(route.at(0));
@@ -86,6 +87,7 @@ float C_Graph::get_distance_startat0(int node1, int node2){
 
 
 float C_Graph::get_route_demand(vector<int> route) {
+  if(route.size()==0) return 0;
   int total_demand = 0;
   for(int i = 0; i < route.size(); i++) {
     total_demand += get_node_by_id_startat0(route.at(i))->VRP_demand;
