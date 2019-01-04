@@ -30,7 +30,7 @@ graph G {
   29[shape = octagon, style = filled , fillcolor = cyan ]
   30[shape = octagon, style = filled , fillcolor = magenta ]
   31[shape = octagon, style = filled , fillcolor = yellow ]
-  32[shape = octagon, style = filled , fillcolor = forestgreen ]
+  32[shape = octagon, style = filled , fillcolor = green ]
   "0"--"1";
   "0"--"2";
   "0"--"3";

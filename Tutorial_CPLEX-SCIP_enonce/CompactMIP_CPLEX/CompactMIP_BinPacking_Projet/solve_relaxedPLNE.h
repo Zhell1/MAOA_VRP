@@ -12,11 +12,13 @@
 #include <iostream>
 #include <fstream>
 
+#include <unordered_map>
+using namespace std;
+
 #include "../../Graph/Graph.h"
 
 #define epsilon 0.00001
 
-using namespace std;
 
 ///////////////////////////////
 /////////////////////////////// NOTES 
@@ -210,7 +212,8 @@ int solve_relaxedPLNE(C_Graph* G, string filename, vector<int> *solution_vec_out
   /////// retrieving solution
   ////////////////:
   vector<int>   sol_x_i;
-
+  vector<int> unique_values = {};
+  int z = 1;
   sol_x_i.resize(N);
   for(i = 1; i < N; i++) {
     int val = 0;
@@ -219,11 +222,40 @@ int solve_relaxedPLNE(C_Graph* G, string filename, vector<int> *solution_vec_out
         val = j; //article i rangé dans la boite j
         if(activateprint) cout << "article_" << i <<"\t\tin box : " << j << endl;
         solution_vec_out->push_back(j);
+        unique_values.push_back(j);
         break;
       }
     }
     sol_x_i[i] = val;
-  }  
+  }
+  // sort and remove duplicate elements=
+  std::sort(unique_values.begin(), unique_values.end()); // 1 1 2 2 3 3 3 4 4 5 5 6 7 
+  auto last = std::unique(unique_values.begin(), unique_values.end());
+  // v now holds {1 2 3 4 5 6 7 x x x x x x}, where 'x' is indeterminate
+  unique_values.erase(last, unique_values.end()); 
+  cout << "unique_values : " ;
+  for (int i : unique_values)
+      std::cout << i << " ";
+  std::cout << "\n";
+  //on génère une map qui associe à chaque valeur sa position à partir de 1
+  unordered_map<int, int> map_values;
+  z = 1;
+  cout << "map_values : " ;
+  for (int i : unique_values) {
+     map_values.insert(std::make_pair(i, z));
+     cout << "("<<i<<"->"<<z<<") " ;
+     z++;
+  }
+  cout << endl;
+  //maintenant on va post-traité le vecteur de solution pour être sûr de n'avoir que des valeurs 1,2,3,4 etc
+  //car on peut avoir des valeurs du style: 1,2,287,548.. surtout avec de grands graphes
+  for(i = 1; i < N; i++) {
+    sol_x_i[i] = map_values.at(sol_x_i[i]);
+    //cout << "sol_x_i["<<i<<"] = "<<sol_x_i[i]<< endl;;
+  }
+  cout << endl;
+
+  // FIN du traitement de sol_x_i
 
   int sol_nb_box= 0;
   for(j = 1; j < N; j++) {

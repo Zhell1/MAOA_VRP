@@ -24,7 +24,7 @@ LIBFORMAT  = static_pic
 # ---------------------------------------------------------------------
 
 #CCC = g++ -O0  #original
-CCC = g++ -O0 -w 
+CCC = g++ -O0 -w -std=c++11
 #-w remove warnings
 
 
