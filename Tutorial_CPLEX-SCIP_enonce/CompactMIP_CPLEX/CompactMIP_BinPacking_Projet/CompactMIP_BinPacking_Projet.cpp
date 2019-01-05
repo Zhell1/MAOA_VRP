@@ -39,7 +39,8 @@ void optimize_2opt_internalRoutes(vector<vector<int>> *tournees, C_Graph* G) {
    //voisinage 2opt pour optimiser chaque tournée indépendament
   cout << endl <<  "*** starting 2opt optimization of internal routes ***"<< endl;
 
-  bool print_alldebug_2opt = true;
+  bool print_alldebug_2opt = false;
+  bool print_shortdebug = true; //prints less stuff
 
   int nb_box_used = tournees->size();
   //on parcours toutes les tournées une par une : 
@@ -50,7 +51,7 @@ void optimize_2opt_internalRoutes(vector<vector<int>> *tournees, C_Graph* G) {
     if(print_alldebug_2opt)cout << "tournee #"<<ibox<<" initial cost = " << initial_cost << endl; 
     //on cherche un 2opt avec meilleur cout
     bool amelioration = true;
-    while (amelioration) {
+    while (amelioration && (*tournee).size() > 0) {
       amelioration = false;
       //pour tout sommet xi de la tournée 
       for(int i = 0; i < tournee->size()-1  && !amelioration ; i++) {
@@ -66,31 +67,31 @@ void optimize_2opt_internalRoutes(vector<vector<int>> *tournees, C_Graph* G) {
             float curr_distance = G->get_distance_startat0(xi, xi_plus1) +G->get_distance_startat0(xj, xj_plus1);
             float new_distance  = G->get_distance_startat0(xi, xj)   +G->get_distance_startat0(xi_plus1, xj_plus1); 
             if(new_distance < curr_distance) { //si amélioration
-              if(print_alldebug_2opt) cout << "\t2opt improvement found : " << new_distance << " from " << curr_distance << endl;
+              if(print_alldebug_2opt || print_shortdebug) cout << "2opt improvement found : " << new_distance << " from " << curr_distance << endl;
               //on remplace les arêtes (xi,xi+1) et (xj,xj+1) par (xi,xj) et (xi+1,xj+1) dans la tournée
               // pour ça on inverse l'ordre de parcours dans le vecteur
               //    + on inverse l'ordre de parcours de tous les noeuds entre ces 2 noeuds
               // => remplacer xi+1 par xj (et inversement) et inverser l'ordre des noeuds entre eux
-              if(print_alldebug_2opt)cout << "\t\tbefore : " <<  vectorint_tostring(*tournee) << endl;
-              if(print_alldebug_2opt)cout << "\t\tinversement de (" << xi<<"->"<<xi_plus1 << ") et (" << xj<<"->"<<xj_plus1<<")" << endl;
+              if(print_alldebug_2opt)cout << "\tbefore : " <<  vectorint_tostring(*tournee) << endl;
+              if(print_alldebug_2opt)cout << "\tinversement de (" << xi<<"->"<<xi_plus1 << ") et (" << xj<<"->"<<xj_plus1<<")" << endl;
               tournee->at(i+1) = xj; //il faut faire -1 car on prends pas en compte le sommet 0 ici
               tournee->at(j) = xi_plus1;
-              if(print_alldebug_2opt)cout << "\t\tbetween : " << vectorint_tostring(*tournee) << endl;
+              if(print_alldebug_2opt)cout << "\tbetween : " << vectorint_tostring(*tournee) << endl;
               //boucle for qui inverse l'ordre des noeuds entre les deux 
               vector<int> temp;
               //on commence par copier la sous-liste
               for(int z = i+2; z <= j-1; z++) {
                   temp.push_back(tournee->at(z));
               }
-              if(print_alldebug_2opt)cout << "\t\ttemp vector : " << vectorint_tostring(temp) << endl; 
+              if(print_alldebug_2opt)cout << "\ttemp vector : " << vectorint_tostring(temp) << endl; 
               //maintenant on remplace en inversant
               int counter=0;
               for(int z = i+2; z <= j-1; z++) {
                   tournee->at(z) = temp.at(temp.size()-1-counter);
                   counter++;
               }
-              if(print_alldebug_2opt)cout << "\t\tafter : " << vectorint_tostring(*tournee) << endl;
-              if(print_alldebug_2opt)cout << "\t\ttournee #"<<ibox<<" new cost = " << G->get_route_cost(*tournee) << endl; 
+              if(print_alldebug_2opt)cout << "\tafter : " << vectorint_tostring(*tournee) << endl;
+              if(print_alldebug_2opt || print_shortdebug)cout << "\ttournee #"<<ibox<<" new cost = " << G->get_route_cost(*tournee) << endl; 
 
               amelioration = true; //et continuer à chercher des améliorations
             }
@@ -106,13 +107,22 @@ void optimize_2opt_switchRoutes(vector<vector<int>> *tournees, C_Graph* G) {
   // voisinages de changement de tournées
   cout << endl <<  "*** starting 2opt optimization : agent switching routes ***"<< endl;
 
+  //////////// PARAMETERS ///////////
   bool print_alldebug_2opt = true;
+  float percent_threshold = 0.00; // only improve if it's more than for ex 1% (use 0.01) OR use 0 to improve ALL the time
+  float threshold_leaving = 0.01; // 0.01% chance of leaving the function (avoid it running too long for huge instances)
+  ///////////////////////////////////
+  // pour rendre la fonction moins biaisée sur le fait de ne déplacer que les premiers éléments des premieres tournées
+  // -> faire un shuffle des tournées aléatoire au début de la fonction
+  // -> ce shuffle est plutôt bénéfique sur les grandes instances et en général, mais peu donner de moins bonnes solutions sur de petites instances si on à pas de chance
+  std::random_shuffle ( tournees->begin(), tournees->end() ); // OK VERIFIE
 
   int nb_box_used = tournees->size();
   int capaciteQ = (*G).VRP_capacity; // capacité max des véhicules
-  if(print_alldebug_2opt) print_all_tournees(*tournees, G);
+  //if(print_alldebug_2opt) print_all_tournees(*tournees, G);
   bool amelioration = true; // mettre dans toutes les boucles for un && !amelioration pour s'arreter dès la 1ere trouvée
   while(amelioration) {
+    std::random_shuffle ( tournees->begin(), tournees->end() ); // OK VERIFIE
     amelioration = false;
     //pour chaque tournée
     float init_total_cost = G->get_VRP_cost(*tournees);
@@ -162,7 +172,9 @@ void optimize_2opt_switchRoutes(vector<vector<int>> *tournees, C_Graph* G) {
                           //on calcule le cout de cette nouvelle tournée
                           float newroute_cost = G->get_route_cost(vectorcopy_temp);
                           // on regarde si le cout total est meilleur
-                          if(allbutother_cost+newroute_cost < init_total_cost) {
+                          float improvement = init_total_cost - allbutother_cost - newroute_cost;
+                          //cout << "improvement of " << init_total_cost-allbutother_cost-newroute_cost << " >? " <<  percent_threshold*init_total_cost << endl; 
+                          if(improvement > percent_threshold*init_total_cost) { //2nd version : only if improvement is more than 1%
                             if(print_alldebug_2opt) cout << " > client "<<currentclient << "   demande "<<currentclientdemande<< endl;
                             if(print_alldebug_2opt) cout << "\tMEILLEUR COUT TOTAL de " << allbutother_cost+newroute_cost << " by adding at pos "<<j<<" of route #"<<other  << endl;
                             // alors on remplace les vecteurs pour garder la meilleure solution
@@ -175,6 +187,10 @@ void optimize_2opt_switchRoutes(vector<vector<int>> *tournees, C_Graph* G) {
                           } else {
                             //cout << "\tmoins bon cout total de "<< allbutother_cost+newroute_cost << " by inserting at pos "<<j<<" of route #"<<other << endl;
                             //print_all_tournees(*tournees, G);
+                          }
+                          // 0.1% chance of leaving the function (avoid it running too long for huge instances)
+                          if(((double) rand() / (RAND_MAX))*100 < threshold_leaving){
+                              return;
                           }
                       }
                   }
@@ -192,6 +208,8 @@ int main (int argc, char**argv){
   bool relaxedPLNE_activateprint  = true;
   bool relaxedPLNE_activateoutput = false;
   ////////////////////////////// end of parameters
+
+  std::srand(std::time(0)); // seed for random,very important
 
   vector<int> solution_vec;
 
@@ -246,8 +264,14 @@ int main (int argc, char**argv){
               curr_tournee.push_back(j+1); //+1 pour commencer à 1 au lieu de 0
           }
       }
+      std::random_shuffle ( curr_tournee.begin(), curr_tournee.end() );  //shuffle optimise bcp la vitesse moyenne !
       tournees.push_back(curr_tournee);
   }
+  std::random_shuffle(tournees.begin(), tournees.end());//shuffle optimise bcp la vitesse moyenne !
+  //test : ajout d'une tournée vide
+  //vector<int> tournee_vide;
+  //tournees.push_back(tournee_vide);
+
   //on affiche toutes les tournées et leurs couts:
   cout<<endl; print_all_tournees(tournees, G);
 
@@ -255,8 +279,13 @@ int main (int argc, char**argv){
   float current_best_VRPcost  = G->get_VRP_cost(tournees);
   bool firsttime =true; //pour lancer la boucle while au moins 1 fois
   //tant qu'on arrive à améliorer par 2opt on continue
-  while (firsttime || previous_best_VRPcost > current_best_VRPcost) {
+  int nb_stagnations = 0;
+  while (firsttime || nb_stagnations < 10) {     // si on voit que 10x de suite on à le même cout on arrête  
     firsttime = false;
+    
+    if(previous_best_VRPcost <= current_best_VRPcost) nb_stagnations++;
+    else nb_stagnations = 0;
+
     //voisinage 2opt pour optimiser chaque tournée indépendament
     optimize_2opt_internalRoutes(&tournees, G);
     print_all_tournees(tournees, G);
