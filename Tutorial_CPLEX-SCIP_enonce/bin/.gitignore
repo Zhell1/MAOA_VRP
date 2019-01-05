@@ -16,3 +16,4 @@ Heuristic_TSP
 viewerGraphGRA
 CompactMIP_Coloring
 viewerGraphTSP
+*.lp
