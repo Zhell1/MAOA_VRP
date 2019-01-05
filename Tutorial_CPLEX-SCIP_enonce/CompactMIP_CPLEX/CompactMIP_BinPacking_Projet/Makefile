@@ -24,7 +24,7 @@ LIBFORMAT  = static_pic
 # ---------------------------------------------------------------------
 
 #CCC = g++ -O0  #original
-CCC = g++ -O0 -w -std=c++11
+CCC = g++ -O3 -w -std=c++11 -Wall -Wextra
 #-w remove warnings
 
 
@@ -32,7 +32,7 @@ CCC = g++ -O0 -w -std=c++11
 # Compiler options 
 # ---------------------------------------------------------------------
 
-CCOPT = -m64 -O -fPIC -fno-strict-aliasing -fexceptions -DNDEBUG -DIL_STD
+CCOPT = -m64 -fPIC -fno-strict-aliasing -fexceptions -DNDEBUG -DIL_STD
 
 # ---------------------------------------------------------------------
 # Link options and libraries

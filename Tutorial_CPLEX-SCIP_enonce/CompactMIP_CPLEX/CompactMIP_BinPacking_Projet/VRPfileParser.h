@@ -111,7 +111,7 @@ C_Graph* parseVRPfile(string filename, bool activateprint)
 			if(sstream.peek() == ':') sstream >> word; // and pass ':' if there is one
 
 		    sstream >> mygraph->VRP_capacity; // int value  
-		    if(activateprint) cout <<  mygraph->VRP_capacity << " de capacité par véhicule" << endl; 	  
+		    if(activateprint) cout <<  mygraph->VRP_capacity << " de capacité par véhicule" << endl;
 		}
 		else if(strstr(word.c_str(), "NODE_COORD_SECTION") != nullptr) { // checks if S1 contains S2
 			reading_nodecoordsection = true;

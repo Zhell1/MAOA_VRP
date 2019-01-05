@@ -108,8 +108,8 @@ void optimize_2opt_switchRoutes(vector<vector<int>> *tournees, C_Graph* G) {
   cout << endl <<  "*** starting 2opt optimization : agent switching routes ***"<< endl;
 
   //////////// PARAMETERS ///////////
-  bool print_alldebug_2opt = true;
-  float percent_threshold = 0.00; // only improve if it's more than for ex 1% (use 0.01) OR use 0 to improve ALL the time
+  bool print_alldebug_2opt = false;
+  float percent_threshold = 0.01; // only improve if it's more than for ex 1% (use 0.01) OR use 0 to improve ALL the time
   float threshold_leaving = 0.01; // 0.01% chance of leaving the function (avoid it running too long for huge instances)
   ///////////////////////////////////
   // pour rendre la fonction moins biaisée sur le fait de ne déplacer que les premiers éléments des premieres tournées
@@ -201,11 +201,275 @@ void optimize_2opt_switchRoutes(vector<vector<int>> *tournees, C_Graph* G) {
   }
 }
 
+//PLNE utilisant la formulation compacte MTZ
+void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G){
+	//m est le nombre de tournées
+	int m = tournees->size();
+	int Q = (*G).VRP_capacity; // capacité max des véhicules
+	int i,j,c;
+	
+	IloEnv   env;
+	IloModel model(env);
+
+	//TODO trouver un moyen de casser la symetrie
+
+	////////////////////////
+	//////  VAR
+	////////////////////////
+
+	//DECISION
+	//xij vaut 1 si l'arete (i,j) est dans une des tournees
+	//wic charge restante dans le camion c au sommet i
+	
+	//note : pour minimiser le nombre de tournees on peut rajouter une variable tc qui vaut 1 si la tournee est non vide
+	
+	//DONNEES
+	//cij cout de l'arete
+	//Q charge max d'un vehicule
+	//di demande du sommet i
+
+	//xij
+	vector<vector<IloNumVar> > x;
+	x.resize(G->nb_nodes);
+
+	for (i=0;i<G->nb_nodes;i++)
+		x[i].resize(G->nb_nodes);
+
+	for (i=0;i<G->nb_nodes;i++){
+		for (j=0;j<G->nb_nodes;j++) {
+			if (i!=j){
+				x[i][j]=IloNumVar(env, 0.0, 1.0, ILOINT);
+				ostringstream varname;
+				varname.str("");
+				varname<<"x_"<<i<<"_"<<j;
+				x[i][j].setName(varname.str().c_str());
+			}
+		}
+	}
+
+	//wic
+	vector<vector<IloNumVar> > w;
+	w.resize(G->nb_nodes);
+
+	for (i=0;i<G->nb_nodes;i++)
+		w[i].resize(m);
+
+	for (i=0;i<G->nb_nodes;i++){
+		for (c=0;c<m;c++) {
+			w[i][c]=IloNumVar(env, 0.0, Q, ILOFLOAT);
+			ostringstream varname;
+			varname.str("");
+			varname<<"w_"<<i<<"_"<<c;
+			w[i][c].setName(varname.str().c_str());
+		}
+	}
+
+	//////////////
+	//////  CST
+	//////////////
+
+	IloRangeArray CC(env);
+	int nbcst=0;
+	
+	//TODO : tenter de couper la matrice des contraintes en 2 en remplacant i!=j par i < j et en ajoutant x[i,j] = x[j,i] en contrainte 
+	// OU mettre a jour toutes les autres contraintes
+
+
+	// la somme de toutes les aretes partant ou arrivant de j fait 1 (1 partant + 1 arrivant)
+	for (j=1;j<G->nb_nodes;j++){
+		IloExpr c1(env);
+		for (i=0;i<G->nb_nodes;i++){
+			if (i!=j) c1+=x[i][j];
+		}
+		CC.add(c1==1);
+		ostringstream nomcst;
+		nomcst.str("");
+		nomcst<<"CstOnce_to_"<<j;
+		CC[nbcst].setName(nomcst.str().c_str());
+		nbcst++;
+	}
+	
+	
+		
+	for (i=0;i<G->nb_nodes;i++){
+		IloExpr c2(env);
+		for (j=1;j<G->nb_nodes;j++){
+			if (i!=j) c2+=x[i][j];
+		}
+		CC.add(c2==1);
+		ostringstream nomcst;
+		nomcst.str("");
+		nomcst<<"CstOnce_from_"<<j;
+		CC[nbcst].setName(nomcst.str().c_str());
+		nbcst++;
+	}
+	
+	//nombre max d'entrees/sorties depuis le depot
+	IloExpr c3(env);
+	for (i=1;i<G->nb_nodes;i++){
+		c3+=x[0][i];
+	}
+	CC.add(c3<=m);
+	ostringstream nomcst;
+	nomcst.str("");
+	nomcst<<"CstMax_tours_from";
+	CC[nbcst].setName(nomcst.str().c_str());
+	nbcst++;
+	
+	IloExpr c4(env);
+	for (i=1;i<G->nb_nodes;i++){
+		c4+=x[i][0];
+	}
+	CC.add(c4<=m);
+	ostringstream nomcst2;
+	nomcst2.str("");
+	nomcst2<<"CstMax_tours_to";
+	CC[nbcst].setName(nomcst2.str().c_str());
+	nbcst++;
+	
+	
+	//MTZ
+	for (c=0;c<m;c++){
+		for (j=0;j<G->nb_nodes;j++){
+			for (i=0;i<G->nb_nodes;i++){
+				if (i!=j){
+					IloExpr c5(env);
+					int di = G->V_nodes[i].VRP_demand;
+					c5+=w[i][c] - w[j][c] - (di - (Q+di)*(1-x[j][i]));
+					
+					CC.add(c5>=0);
+					ostringstream nomcst3;
+					nomcst3.str("");
+					nomcst3<<"Cst_MTZ_"<<j<<"_"<<i;
+					CC[nbcst].setName(nomcst3.str().c_str());
+					nbcst++;
+				}
+			}
+		}
+	}
+	
+	
+	/*
+	* //   sum_{j=1 to n, j!=i} x_ij = 1   for all node i=1 to n
+	* for (i=0;i<G->nb_nodes;i++){
+	*   IloExpr c1(env);
+	*   for (j=0;j<G->nb_nodes;j++)
+	*     if (i!=j)
+	* c1+=x[i][j];
+	*   CC.add(c1==1);
+	*   ostringstream nomcst;
+	*   nomcst.str("");
+	*   nomcst<<"CstDegOut_"<<i;
+	*   CC[nbcst].setName(nomcst.str().c_str());
+	*   nbcst++;
+	}
+
+	//   sum_{i=1 to n, i!=j} x_ij = 1   for all node j=1 to n
+	for (j=0;j<G->nb_nodes;j++){
+		IloExpr c1(env);
+		for (i=0;i<G->nb_nodes;i++)
+			if (i!=j)
+				c1+=x[i][j];
+			CC.add(c1==1);
+		ostringstream nomcst;
+		nomcst.str("");
+		nomcst<<"CstDegInt_"<<j;
+		CC[nbcst].setName(nomcst.str().c_str());
+		nbcst++;
+	}
+
+
+
+
+	// u_i -u_j + 1 <= n (1 -x_ij) for all i=2 to n and j = 2 to n j!= i
+	// becomes  n x_ij +ui -uj <= n -1
+
+	for (i=1;i<G->nb_nodes;i++)
+		for (j=1;j<G->nb_nodes;j++)
+			if (i!=j){
+				IloExpr c2(env);
+				c2=G->nb_nodes*x[i][j] +u[i] -u[j];
+				CC.add(c2<= G->nb_nodes -1);
+				ostringstream nomcst;
+				nomcst.str("");
+				nomcst<<"CstMTZ_"<<i<<"_"<<j;
+				CC[nbcst].setName(nomcst.str().c_str());
+				nbcst++;
+	}
+
+	*/
+
+
+	model.add(CC);
+
+
+	//////////////
+	////// OBJ
+	//////////////
+
+	IloObjective obj=IloAdd(model, IloMinimize(env, 0.0));
+
+	for (i=0;i<G->nb_nodes;i++)
+		for (j=0;j<G->nb_nodes;j++)
+			if (i!=j)
+				obj.setLinearCoef(x[i][j],G->lengthTSP(i,j));
+			
+			
+	///////////
+	//// RESOLUTION
+	//////////
+return;
+	IloCplex cplex(model);
+
+	// cplex.setParam(IloCplex::Cliques,-1);
+	// cplex.setParam(IloCplex::Covers,-1);
+	// cplex.setParam(IloCplex::DisjCuts,-1);
+	// cplex.setParam(IloCplex::FlowCovers,-1);
+	// cplex.setParam(IloCplex::FlowPaths,-1);
+	// cplex.setParam(IloCplex::FracCuts,-1);
+	// cplex.setParam(IloCplex::GUBCovers,-1);
+	// cplex.setParam(IloCplex::ImplBd,-1);
+	// cplex.setParam(IloCplex::MIRCuts,-1);
+	// cplex.setParam(IloCplex::ZeroHalfCuts,-1);
+	// cplex.setParam(IloCplex::MCFCuts,-1);
+	// cplex.setParam(IloCplex::MIPInterval,1);
+	// cplex.setParam(IloCplex::HeurFreq,-1);
+	// cplex.setParam(IloCplex::ClockType,1);
+	// cplex.setParam(IloCplex::RINSHeur,-1);
+
+
+	string sortielp = /*filename+*/"sortie.lp";
+	cplex.exportModel(sortielp.c_str());
+
+	if ( !cplex.solve() ) {
+		env.error() << "Failed to optimize LP" << endl;
+		exit(1);
+	}
+
+
+	env.out() << "Solution status = " << cplex.getStatus() << endl;
+	env.out() << "Solution value  = " << cplex.getObjValue() << endl;
+
+	/*
+		* list<pair<int,int> >   Lsol;
+		* for(i = 0; i < G->nb_nodes; i++)
+		*    for (j=0;j<G->nb_nodes;j++)
+		*     if (i!=j)
+		* if (cplex.getValue(x[i][j])>1-epsilon)
+		*  Lsol.push_back(make_pair(i,j));
+		*/
+
+	env.end();
+	
+}
+
+
+
 int main (int argc, char**argv){
   //////////////////////////////
   ///////// PARAMETERS /////////
   //////////////////////////////
-  bool relaxedPLNE_activateprint  = true;
+  bool relaxedPLNE_activateprint  = false;
   bool relaxedPLNE_activateoutput = false;
   ////////////////////////////// end of parameters
 
@@ -277,12 +541,9 @@ int main (int argc, char**argv){
 
   float previous_best_VRPcost = G->get_VRP_cost(tournees);
   float current_best_VRPcost  = G->get_VRP_cost(tournees);
-  bool firsttime =true; //pour lancer la boucle while au moins 1 fois
   //tant qu'on arrive à améliorer par 2opt on continue
   int nb_stagnations = 0;
-  while (firsttime || nb_stagnations < 10) {     // si on voit que 10x de suite on à le même cout on arrête  
-    firsttime = false;
-    
+  do {
     if(previous_best_VRPcost <= current_best_VRPcost) nb_stagnations++;
     else nb_stagnations = 0;
 
@@ -297,10 +558,17 @@ int main (int argc, char**argv){
     //MAJ les valeurs
     previous_best_VRPcost = current_best_VRPcost;
     current_best_VRPcost = G->get_VRP_cost(tournees);
-  }
+  }while (nb_stagnations < 10);		// si on voit que 10x de suite on à le même cout on arrête  
 
   //on affiche toutes les tournées et leurs couts:
   cout << "after 2opt optimization : " << endl;
+  cout<<endl; print_all_tournees(tournees, G);
+  
+  
+  optimizeMTZ(&tournees, G);
+  
+  //on affiche toutes les tournées et leurs couts:
+  cout << "after MTZ optimization : " << endl;
   cout<<endl; print_all_tournees(tournees, G);
 
   ///////////////////////////////////////////////////////////////////////////////////// fin métaheuristique itérative par voisinage
@@ -314,5 +582,8 @@ int main (int argc, char**argv){
           formulations du sujet par des variables non-orientées !!
   */
 
+  
+  //TODO exporter le graphe vers un fichier pour voir et vérifier le résultat
+  
   return 0;
 }

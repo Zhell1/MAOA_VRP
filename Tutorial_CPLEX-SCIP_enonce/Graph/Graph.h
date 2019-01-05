@@ -103,7 +103,7 @@ public:
   float get_route_cost(vector<int> route); //added thomas
   //similaire à ci-dessus mais cette fois avec toutes les tournées d'un coup en entrée
   float get_VRP_cost(vector<vector<int>> tournees);
-  //renvois la capacité utilisée par cette tournée (somme des demandes des clients)
+  //renvoie la capacité utilisée par cette tournée (somme des demandes des clients)
   float get_route_demand(vector<int> route);
   /************************************/
 

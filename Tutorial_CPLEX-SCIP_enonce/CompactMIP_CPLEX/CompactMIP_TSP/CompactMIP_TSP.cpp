@@ -60,7 +60,7 @@ int main (int argc, char**argv){
 
   C_Graph G;
 
-  G.read_undirected_complete_TSP(fic);
+  read_undirected_complete_TSP(fic);
 
   fic.close();
 
@@ -81,13 +81,13 @@ int main (int argc, char**argv){
 
 
   vector<vector<IloNumVar> > x;
-  x.resize(G.nb_nodes);
+  x.resize(nb_nodes);
   
-  for (i=0;i<G.nb_nodes;i++)
-    x[i].resize(G.nb_nodes);
+  for (i=0;i<nb_nodes;i++)
+    x[i].resize(nb_nodes);
   
-  for (i=0;i<G.nb_nodes;i++){
-    for (j=0;j<G.nb_nodes;j++) {
+  for (i=0;i<nb_nodes;i++){
+    for (j=0;j<nb_nodes;j++) {
       if (i!=j){
 	x[i][j]=IloNumVar(env, 0.0, 1.0, ILOINT);
 	ostringstream varname;
@@ -100,9 +100,9 @@ int main (int argc, char**argv){
 
   
   vector<IloNumVar> u;
-  u.resize(G.nb_nodes);
-  for(i = 0; i < G.nb_nodes; i++) {
-    u[i]=IloNumVar(env, 1.0, G.nb_nodes, ILOFLOAT);
+  u.resize(nb_nodes);
+  for(i = 0; i < nb_nodes; i++) {
+    u[i]=IloNumVar(env, 1.0, nb_nodes, ILOFLOAT);
     ostringstream nomvar;
     nomvar.str("");
     nomvar<<"u_"<<i;
@@ -121,9 +121,9 @@ int main (int argc, char**argv){
 
  
   //   sum_{j=1 to n, j!=i} x_ij = 1   for all node i=1 to n
-  for (i=0;i<G.nb_nodes;i++){
+  for (i=0;i<nb_nodes;i++){
     IloExpr c1(env);
-    for (j=0;j<G.nb_nodes;j++)
+    for (j=0;j<nb_nodes;j++)
       if (i!=j)
 	c1+=x[i][j];
     CC.add(c1==1);
@@ -135,9 +135,9 @@ int main (int argc, char**argv){
   }
   
   //   sum_{i=1 to n, i!=j} x_ij = 1   for all node j=1 to n
-  for (j=0;j<G.nb_nodes;j++){
+  for (j=0;j<nb_nodes;j++){
     IloExpr c1(env);
-    for (i=0;i<G.nb_nodes;i++)
+    for (i=0;i<nb_nodes;i++)
       if (i!=j)
 	c1+=x[i][j];
     CC.add(c1==1);
@@ -154,12 +154,12 @@ int main (int argc, char**argv){
   // u_i -u_j + 1 <= n (1 -x_ij) for all i=2 to n and j = 2 to n j!= i
   // becomes  n x_ij +ui -uj <= n -1
 
-  for (i=1;i<G.nb_nodes;i++)
-    for (j=1;j<G.nb_nodes;j++)
+  for (i=1;i<nb_nodes;i++)
+    for (j=1;j<nb_nodes;j++)
       if (i!=j){
   	IloExpr c2(env);
-  	c2=G.nb_nodes*x[i][j] +u[i] -u[j];
-  	CC.add(c2<= G.nb_nodes -1);
+  	c2=nb_nodes*x[i][j] +u[i] -u[j];
+  	CC.add(c2<= nb_nodes -1);
   	ostringstream nomcst;
   	nomcst.str("");
   	nomcst<<"CstMTZ_"<<i<<"_"<<j;
@@ -179,10 +179,10 @@ int main (int argc, char**argv){
   
   IloObjective obj=IloAdd(model, IloMinimize(env, 0.0));
   
-  for (i=0;i<G.nb_nodes;i++)
-    for (j=0;j<G.nb_nodes;j++)
+  for (i=0;i<nb_nodes;i++)
+    for (j=0;j<nb_nodes;j++)
       if (i!=j)
-	obj.setLinearCoef(x[i][j],G.lengthTSP(i,j));
+	obj.setLinearCoef(x[i][j],lengthTSP(i,j));
  
 
   ///////////
@@ -224,8 +224,8 @@ int main (int argc, char**argv){
 
 
   list<pair<int,int> >   Lsol;
-  for(i = 0; i < G.nb_nodes; i++)
-     for (j=0;j<G.nb_nodes;j++)
+  for(i = 0; i < nb_nodes; i++)
+     for (j=0;j<nb_nodes;j++)
       if (i!=j)
 	if (cplex.getValue(x[i][j])>1-epsilon)
 	  Lsol.push_back(make_pair(i,j));
@@ -247,7 +247,7 @@ int main (int argc, char**argv){
   ofstream ficsol(nameextsol.c_str());
   double best_length=0;
   for(itp = Lsol.begin(); itp!=Lsol.end();itp++) {
-    best_length+=G.lengthTSP(itp->first,itp->second);
+    best_length+=lengthTSP(itp->first,itp->second);
     ficsol<<itp->first<<" "<<itp->second<<endl;
   }
  
