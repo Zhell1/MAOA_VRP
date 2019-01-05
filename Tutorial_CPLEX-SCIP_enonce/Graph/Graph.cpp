@@ -17,12 +17,6 @@ using namespace std;
 
 /***************** VRP ADDED ****************************/
 
-// you must give an id between [1, nbNodes], not starting at 0  !!!
-C_node* C_Graph::get_node_by_id_startat1(int id) {
-    return &(this->V_nodes[id-1]); 
-    //should work if created in the right order
-}
-
 C_node* C_Graph::get_node_by_id_startat0(int id) {
     return &(this->V_nodes[id]); 
 }
@@ -31,41 +25,37 @@ float C_link::getDistance(){
   return this->length;
 }
 
-int C_link::getidv1_startat1(){
-  return (this->v1 + 1) ;
+int C_link::getidv1_startat0(){
+  return (this->v1 ) ;
 }
-int C_link::getidv2_startat1(){
-  return (this->v2 + 1) ;
+int C_link::getidv2_startat0(){
+  return (this->v2 ) ;
 }
 
 //OK VERIFIE
-// you must give an id between [1, nbNodes], not starting at 0  !!!
 // this function only works if C_link.length was created with the right calculated length
 // it doesn't recalculates it ! (to be faster)
-float C_node::getDistanceFrom_startat1(int idj){
+float C_node::getDistanceFrom_startat0(int idj){
   //rappel : list <C_link*> L_adjLinks;
   std::list<C_link*>::iterator it;
   for (it = L_adjLinks.begin(); it != L_adjLinks.end(); ++it)
   {
-      if((*it)->getidv1_startat1() == idj && (*it)->getidv2_startat1() == this->num){
+      if((*it)->getidv1_startat0() == idj && (*it)->getidv2_startat0() == this->num){
         //cout << "found " << idj << " and " << this->num << endl;
         return((*it)->length);
       }
-      else if((*it)->getidv2_startat1() == idj && (*it)->getidv1_startat1() == this->num){
+      else if((*it)->getidv2_startat0() == idj && (*it)->getidv1_startat0() == this->num){
         //cout << "found " << idj << " and " << this->num << endl;
         return((*it)->length);
       }
   }
-  cout << "ERROR C_node::getDistanceFrom() NOT FOUND BETWEEN NODE ID " << idj << " and " << this->num << " (in [1, nbnodes])" << endl;
+  cout << "ERROR C_node::getDistanceFrom() NOT FOUND BETWEEN NODE ID " << idj << " and " << this->num << " (in [0, nbnodes-1])" << endl;
   return -1000; //PROBLEM NOT FOUND
 } 
 
-float C_node::getDistanceFrom_startat0(int idj){ 
-  return getDistanceFrom_startat1(idj+1);
-}
-
 // OK VERIFIE
 float C_Graph::get_route_cost(vector<int> route) {
+  if(route.size() == 0) return 0;
   float cost = 0;
   //sommet 0 au premier noeud
   cost += get_node_by_id_startat0(0)->getDistanceFrom_startat0(route.at(0));
@@ -90,6 +80,21 @@ float C_Graph::get_VRP_cost(vector<vector<int>> tournees) {
 
   return total_cost;
 }
+
+float C_Graph::get_distance_startat0(int node1, int node2){
+  return get_node_by_id_startat0(node1)->getDistanceFrom_startat0(node2);
+}
+
+
+float C_Graph::get_route_demand(vector<int> route) {
+  if(route.size()==0) return 0;
+  int total_demand = 0;
+  for(int i = 0; i < route.size(); i++) {
+    total_demand += get_node_by_id_startat0(route.at(i))->VRP_demand;
+  }
+  return total_demand;
+}
+
 /***************** FIN VRP ADDED ****************************/
 
 

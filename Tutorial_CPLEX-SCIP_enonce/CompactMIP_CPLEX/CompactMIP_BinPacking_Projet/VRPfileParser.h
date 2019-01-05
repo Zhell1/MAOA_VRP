@@ -100,7 +100,7 @@ C_Graph* parseVRPfile(string filename, bool activateprint)
 			mygraph->V_links.resize(mygraph->nb_links);
 
 			for (int i=0 ; i < mygraph->nb_nodes ;i++){ 
-		      mygraph->V_nodes[i].num = i+1;				//file starts at 1, not 0
+		      mygraph->V_nodes[i].num = i;				
 		      mygraph->V_nodes[i].L_adjLinks.clear();
 		      mygraph->V_nodes[i].weight=1;					// pas de poids sur les noeuds pour nous
 		    }
@@ -120,25 +120,19 @@ C_Graph* parseVRPfile(string filename, bool activateprint)
 		else if (reading_nodecoordsection == true) {
 			int id = 0;
 			sstream >> id;	//id
+			id=id-1;
 			//cout << "reading node id " << id << endl;
-			if(id == 0) { // problem, no id should be 0 since we start at 1
+			if(id < 0) { // problem, no id should be  < 0
 				reading_nodecoordsection = false;
 				if(activateprint) cout << "DEMAND_SECTION" << endl;
 				reading_demandsection = true; //pass to next section
 			}
 			else {
-				//!\\ /!\																		/!\
-				//!\\ /!\  mygraph->get_node_by_id(id)  =   mygraph->V_nodes[id-1] 				/!\
-				//!\\ /!\																		/!\
-				//!\\ /!\                 using get_node_by_id() is safer						/!\
-				//!\\ /!\			         because files starts at 1							/!\
-				//!\\ /!\																		/!\
+				sstream >> mygraph->get_node_by_id_startat0(id)->x;	//x
+				sstream >> mygraph->get_node_by_id_startat0(id)->y;	//y
+				if(activateprint) cout << "lecture coordonnée : noeud " << id << " at (" << mygraph->get_node_by_id_startat0(id)->x << ", " << mygraph->get_node_by_id_startat0(id)->y << ")" << endl;
 
-				sstream >> mygraph->get_node_by_id_startat1(id)->x;	//x
-				sstream >> mygraph->get_node_by_id_startat1(id)->y;	//y
-				if(activateprint) cout << "lecture coordonnée : noeud " << id << " at (" << mygraph->get_node_by_id_startat1(id)->x << ", " << mygraph->get_node_by_id_startat1(id)->y << ")" << endl;
-
-				if (id == mygraph->nb_nodes) {
+				if (id == mygraph->nb_nodes-1) {
 					reading_nodecoordsection = false;	//so that we can read the next section title after
 					//OK VÉRIFIE
 				}
@@ -152,15 +146,16 @@ C_Graph* parseVRPfile(string filename, bool activateprint)
 		else if (reading_demandsection == true){
 			int id = 0;
 			sstream >> id;
-			if(id == 0) { // problem, no id should be 0 since we start at 1
+			id=id-1;
+			if(id < 0) { // problem, no id should be < 0
 				reading_demandsection = false;
 			}
 			else{
-				sstream >> mygraph->get_node_by_id_startat1(id)->VRP_demand;
+				sstream >> mygraph->get_node_by_id_startat0(id)->VRP_demand;
 
-				if(activateprint) cout << "lecture demande : noeud " << id << " demands " << mygraph->get_node_by_id_startat1(id)->VRP_demand << endl;
+				if(activateprint) cout << "lecture demande : noeud " << id << " demands " << mygraph->get_node_by_id_startat0(id)->VRP_demand << endl;
 
-				if (id == mygraph->nb_nodes) {
+				if (id == mygraph->nb_nodes-1) {
 					reading_demandsection = false;	//so that we can read the next section title after
 					//OK VÉRIFIE
 				}
@@ -184,8 +179,8 @@ C_Graph* parseVRPfile(string filename, bool activateprint)
 			a->num = k;
 			noeudi = &(mygraph->V_nodes[i]); // V_nodes[i] because we use int i = 0 to start
 			noeudj = &(mygraph->V_nodes[j]);
-			a->v1 = noeudi->num -1; // OK VERIF
-			a->v2 = noeudj->num -1; // OK VERIF
+			a->v1 = noeudi->num ; // OK VERIF
+			a->v2 = noeudj->num ; // OK VERIF
 			a->length = EUC_2D(noeudi->x, noeudi->y, noeudj->x, noeudj->y); // why not ? it's cheap
 			mygraph->V_nodes[i].L_adjLinks.push_back(a);
 			mygraph->V_nodes[j].L_adjLinks.push_back(a); //si on met dans les sens  = version non dirigée Undirected, sinon changer, voir code dans C_graph.cpp

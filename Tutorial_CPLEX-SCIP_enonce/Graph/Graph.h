@@ -35,8 +35,8 @@ public:
   void set_algo_cost(double v);
 
   float getDistance(); //returns this.length //added 
-  int getidv1_startat1(); //added thomas
-  int getidv2_startat1();//added thomas
+  int getidv1_startat0(); //added thomas
+  int getidv2_startat0();//added thomas
 
    /******** Lemon structure ****/
    lemon::ListGraph::Edge LGU_name;
@@ -64,7 +64,6 @@ public :
 
    //return EUC_2D distance to other node
    float getDistanceFrom_startat0(int idj);  //added thomas //ok verifié
-   float getDistanceFrom_startat1(int idj);  //added thomas
 
    /******** Lemon structure ****/
    lemon::ListGraph::Node LGU_name;
@@ -94,15 +93,18 @@ public:
   // Additional encoding: a vector on the edges (on pointers over edges)
   vector <C_link*> V_links;
 
-  /******* VRP functions added ********/
-  C_node* get_node_by_id_startat1(int id); //added thomas
+  /******* VRP functions added ********/ // added thomas
   C_node* get_node_by_id_startat0(int id); // added thomas
+
+  float get_distance_startat0(int node1, int node2);
 
   //prend tournée sans le sommet 0, numérotée de 1 à N (ex: {15, 16, 17, 19, 21, 29} )
   //renvoie le cout total de la tournée **en prenant en compte le sommet 0** !
   float get_route_cost(vector<int> route); //added thomas
   //similaire à ci-dessus mais cette fois avec toutes les tournées d'un coup en entrée
   float get_VRP_cost(vector<vector<int>> tournees);
+  //renvois la capacité utilisée par cette tournée (somme des demandes des clients)
+  float get_route_demand(vector<int> route);
   /************************************/
 
   /*********************************************/
