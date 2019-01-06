@@ -57,7 +57,7 @@ void optimize_2opt_internalRoutes(vector<vector<int>> *tournees, C_Graph* G) {
       for(int i = 0; i < tournee->size()-1  && !amelioration ; i++) {
         //pour tout sommet xj de la tournée 
         for(int j = 0; j < tournee->size()-1 && !amelioration; j++) {
-          int xi = tournee->at(i); //important de le faire ici pour MAJ tout le temps
+          int xi = tournee->at(i); //important de le faire ici pour MAj tout le temps
           int xi_plus1 = tournee->at(i+1);
           int xj = tournee->at(j);
           int xj_plus1 = tournee->at(j+1);
@@ -291,15 +291,15 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G){
 	
 	
 		
-	for (i=0;i<G->nb_nodes;i++){
+	for (i=1;i<G->nb_nodes;i++){
 		IloExpr c2(env);
-		for (j=1;j<G->nb_nodes;j++){
+		for (j=0;j<G->nb_nodes;j++){
 			if (i!=j) c2+=x[i][j];
 		}
 		CC.add(c2==1);
 		ostringstream nomcst;
 		nomcst.str("");
-		nomcst<<"CstOnce_from_"<<j;
+		nomcst<<"CstOnce_from_"<<i;
 		CC[nbcst].setName(nomcst.str().c_str());
 		nbcst++;
 	}
@@ -327,76 +327,28 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G){
 	CC[nbcst].setName(nomcst2.str().c_str());
 	nbcst++;
 	
-	
+	/*
 	//MTZ
+	//c=0;
 	for (c=0;c<m;c++){
-		for (j=0;j<G->nb_nodes;j++){
-			for (i=0;i<G->nb_nodes;i++){
+		for (i=0;i<G->nb_nodes;i++){
+			int di = G->V_nodes[i].VRP_demand;
+			for (j=0;j<G->nb_nodes;j++){
 				if (i!=j){
 					IloExpr c5(env);
-					int di = G->V_nodes[i].VRP_demand;
-					c5+=w[i][c] - w[j][c] - (di - (Q+di)*(1-x[j][i]));
+					
+					c5+=w[i][c] - w[j][c] - (di - (Q+di)*(1-x[i][j]));
 					
 					CC.add(c5>=0);
 					ostringstream nomcst3;
 					nomcst3.str("");
-					nomcst3<<"Cst_MTZ_"<<j<<"_"<<i;
+					nomcst3<<"Cst_MTZ_"<<i<<"_"<<j;
 					CC[nbcst].setName(nomcst3.str().c_str());
 					nbcst++;
 				}
 			}
 		}
 	}
-	
-	
-	/*
-	* //   sum_{j=1 to n, j!=i} x_ij = 1   for all node i=1 to n
-	* for (i=0;i<G->nb_nodes;i++){
-	*   IloExpr c1(env);
-	*   for (j=0;j<G->nb_nodes;j++)
-	*     if (i!=j)
-	* c1+=x[i][j];
-	*   CC.add(c1==1);
-	*   ostringstream nomcst;
-	*   nomcst.str("");
-	*   nomcst<<"CstDegOut_"<<i;
-	*   CC[nbcst].setName(nomcst.str().c_str());
-	*   nbcst++;
-	}
-
-	//   sum_{i=1 to n, i!=j} x_ij = 1   for all node j=1 to n
-	for (j=0;j<G->nb_nodes;j++){
-		IloExpr c1(env);
-		for (i=0;i<G->nb_nodes;i++)
-			if (i!=j)
-				c1+=x[i][j];
-			CC.add(c1==1);
-		ostringstream nomcst;
-		nomcst.str("");
-		nomcst<<"CstDegInt_"<<j;
-		CC[nbcst].setName(nomcst.str().c_str());
-		nbcst++;
-	}
-
-
-
-
-	// u_i -u_j + 1 <= n (1 -x_ij) for all i=2 to n and j = 2 to n j!= i
-	// becomes  n x_ij +ui -uj <= n -1
-
-	for (i=1;i<G->nb_nodes;i++)
-		for (j=1;j<G->nb_nodes;j++)
-			if (i!=j){
-				IloExpr c2(env);
-				c2=G->nb_nodes*x[i][j] +u[i] -u[j];
-				CC.add(c2<= G->nb_nodes -1);
-				ostringstream nomcst;
-				nomcst.str("");
-				nomcst<<"CstMTZ_"<<i<<"_"<<j;
-				CC[nbcst].setName(nomcst.str().c_str());
-				nbcst++;
-	}
-
 	*/
 
 
@@ -404,7 +356,7 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G){
 
 
 	//////////////
-	////// OBJ
+	////// OBj
 	//////////////
 
 	IloObjective obj=IloAdd(model, IloMinimize(env, 0.0));
@@ -418,7 +370,10 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G){
 	///////////
 	//// RESOLUTION
 	//////////
-return;
+
+	
+	cout << CC << endl;
+	
 	IloCplex cplex(model);
 
 	// cplex.setParam(IloCplex::Cliques,-1);
@@ -449,6 +404,18 @@ return;
 
 	env.out() << "Solution status = " << cplex.getStatus() << endl;
 	env.out() << "Solution value  = " << cplex.getObjValue() << endl;
+	
+	list<pair<int,int>> sol;
+	for(i = 0; i < G->nb_nodes; i++)
+		for (j=0;j<G->nb_nodes;j++)
+			if (i!=j && cplex.getValue(x[i][j])>1-epsilon)
+				sol.push_back(make_pair(i,j));
+	
+	
+	// create PDF with solution
+	string name = "MTZ";
+    G->write_SVG_tour(name.c_str(), sol);
+    cout << "wrote visualisation of solution to file: " << name.c_str() << "_G_color.pdf" << endl;
 
 	/*
 		* list<pair<int,int> >   Lsol;
@@ -511,7 +478,7 @@ int main (int argc, char**argv){
     - la possiblité pour un client de changer de tournées
     - supprimer une tournée vide
     - éventuellement ajouter une tournée vide 
-    OBJ: minimiser la somme toale des couts des arcs utilisés (sous contrainte de capacité des véhicules)
+    OBj: minimiser la somme toale des couts des arcs utilisés (sous contrainte de capacité des véhicules)
     rmq: on peut décrire une tournée par une liste de sommets (i0, i1, ...ip) comme le graphe est complet.
          tous les circuits commencent par le sommet 0 et finissent au sommet 0
     TODO: -> peut-être ajouter métaheuristique en ajoutant une tournée vide au début qu'on supprime ensuite ?
@@ -573,17 +540,6 @@ int main (int argc, char**argv){
 
   ///////////////////////////////////////////////////////////////////////////////////// fin métaheuristique itérative par voisinage
   
-  /*
-  thomas @Baptiste:
-        tu peux repartir de la solution dans "tournees" comme solution initiale (borne) si c'est utile?
-           pour faire la partie 1.0.2 : Formulations PLNE pour le VRP
-
-        attention dans nos instances les couts sont symétriques donc il faut changer les
-          formulations du sujet par des variables non-orientées !!
-  */
-
-  
-  //TODO exporter le graphe vers un fichier pour voir et vérifier le résultat
   
   return 0;
 }
