@@ -399,10 +399,14 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 	IloObjective obj=IloAdd(model, IloMinimize(env, 0.0));
 
   //ici on prend bien en compte les arêtes partants et arrivants au sommet source 0
-	for (i=0; i < G->nb_nodes; i++)
-		for (j=0; j < G->nb_nodes; j++)
-			if (i<j) // previously if(i!=j)
-				obj.setLinearCoef(x[i][j], G->lengthTSP(i,j));
+	for (i=0; i < G->nb_nodes; i++){
+		for (j=0; j < G->nb_nodes; j++){
+			if (i!=j) {// previously if(i!=j) 
+        //obj.setLinearCoef(x[i][j], G->lengthTSP(i,j));
+        obj.setLinearCoef(x[i][j], 0); // affiche la première solution trouvée valide
+    }
+   }
+  }
 			
 			
 	///////////
@@ -451,139 +455,10 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
         cout << "arc ("<<i<<","<<j<<")" << endl;
       }
 
-  ///////////////////////////////////////////////////////////////////
-  // thomas added to post-treat the solution
-  ///////////////////////////////////////////////////////////////////
-  vector<int> solution_vec_out2;
-	vector<int> *solution_vec_out = &solution_vec_out2;
-
-  cout << "\nsolution : "<< endl;
-	int N = G->nb_nodes;
-  vector<int>   sol_x_i;
-  vector<int> unique_values = {};
-  sol_x_i.resize(N);
-  for(i = 1; i < N; i++) {
-    int val = 0;
-    for(j=1; j < N; j++) {
-      if(i != j && cplex.getValue(x[i][j]) >1-epsilon) {
-        val = j; //article i rangé dans la boite j
-        //cout << "article_" << i <<"\t\tin box : " << j << "\t\t w_"<<i<<" = " << cplex.getValue(w[i]) <<endl;
-        cout << "article_" << i <<"\t\tin box : " << j << endl;
-        solution_vec_out->push_back(j);
-        unique_values.push_back(j);
-        break;
-      }
-    }
-    sol_x_i[i] = val;
-  }
-  // sort and remove duplicate elements=
-  std::sort(unique_values.begin(), unique_values.end()); // 1 1 2 2 3 3 3 4 4 5 5 6 7 
-  auto last = std::unique(unique_values.begin(), unique_values.end());
-  // v now holds {1 2 3 4 5 6 7 x x x x x x}, where 'x' is indeterminate
-  unique_values.erase(last, unique_values.end()); 
-  cout << "unique_values : " ;
-  for (int i : unique_values)
-      std::cout << i << " ";
-  std::cout << "\n";
-  //on génère une map qui associe à chaque valeur sa position à partir de 1
-  unordered_map<int, int> map_values;
-  int z = 1;
-  cout << "map_values : " ;
-  for (int i : unique_values) {
-     map_values.insert(std::make_pair(i, z));
-     cout << "("<<i<<"->"<<z<<") " ;
-     z++;
-  }
-  cout << endl;
-  //maintenant on va post-traité le vecteur de solution pour être sûr de n'avoir que des valeurs 1,2,3,4 etc
-  //car on peut avoir des valeurs du style: 1,2,287,548.. surtout avec de grands graphes
-  cout << "post treating solution vector... (N="<< N << ")" << endl;
-  solution_vec_out->clear();
-  for(i = 1; i < N; i++) {
-    cout << "sol_x_i["<<i<<"] = "<<sol_x_i[i]<< endl;;
-    sol_x_i[i] = map_values.at(sol_x_i[i]);
-    solution_vec_out->push_back(sol_x_i[i]);
-  }
-  //cout << endl;
-
-  // FIN du traitement de sol_x_i
-  /////////////////////////////////////////////////////////////////// fin du post-traitement de la solution
-/*
-	// create SVG with solution
-	string name = "MTZ";
-    //G->write_SVG_tour(name.c_str(), sol);
-    cout << "wrote visualisation of solution to file: " << name.c_str() << "_G_color.svg" << endl;
-
-	/*
-		* list<pair<int,int> >   Lsol;
-		* for(i = 0; i < G->nb_nodes; i++)
-		*    for (j=0;j<G->nb_nodes;j++)
-		*     if (i!=j)
-		* if (cplex.getValue(x[i][j])>1-epsilon)
-		*  Lsol.push_back(make_pair(i,j));
-		*/
 
   //END CPLEX
 	env.end();
 
-
-  ///////////////////////////////////////////////////////////////////
-  // save solution to .color and .svg
-  ///////////////////////////////////////////////////////////////////
-
-
-  name=name+"_MTZ";
-  string nameextsol=name+".color";
-
-  bool activateoutput = true; // todo put this at the beginning
-
-  if(activateoutput) {
-
-    cout << "starting to save to .color and .svg files..." << endl;
-
-    ofstream ficsol(nameextsol.c_str());
-    
-    //pour chaque noeud on écrit la boite (tournée) à laquelle il appartient
-    for(i = 1; i < N; i++) 
-      ficsol<<sol_x_i[i]<<" ";
-
-    ficsol.close();
-
-    cout << "wrote solution to file: " << nameextsol.c_str() << endl;
-
-    //////////////
-    ////// second output using the viewerColor
-    //////////////
-
-    // NOW we write the output files as .color and .pdf
-
-    // save to .color and reload it from the file
-    string nameext2=name+".color";
-
-    ifstream fic2(nameext2.c_str());
-
-    if (fic2.fail()){
-      cerr<<"file "<<nameext2<<" not found"<<endl;
-      return ;
-    }
-
-    vector<int> sol;
-    sol.resize(N);
-    
-    for (i=1; i < N; i++)
-      fic2>>sol[i];
-    
-    fic2.close();
-
-    // create PDF with solution
-    //G->write_dot_G_color(name.c_str(),sol);
-    //cout << "wrote visualisation of solution to file: " << name.c_str() << "_G_color.pdf" << endl;
-
-    //create svg with solution
-    G->write_dot_G_color_svg(name.c_str(),sol);
-    cout << "wrote visualisation of solution to file: " << name.c_str() << "_G_color.svg" << endl;
-
-  } // end of :  if(activateoutput) {}
 }
 
 
