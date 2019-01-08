@@ -308,7 +308,7 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
   nbcst++;
   
 
-  for (i=0; i < G->nb_nodes; i++){ // ∀i ∈ NC
+  for (i=1; i < G->nb_nodes; i++){ // ∀i ∈ NC
     IloExpr c2(env);
     for (j=0; j < G->nb_nodes; j++){
       if(i!=j) {
@@ -324,10 +324,12 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
     nbcst++;
   }
 
-	for (j=0; j < G->nb_nodes; j++){ // ∀i ∈ NC
+	for (j=1; j < G->nb_nodes; j++){ // ∀i ∈ NC
 		IloExpr c1(env);
 		for (i=0; i < G->nb_nodes; i++){
-			if (i != j) c1+=x[i][j];
+			if (i != j){
+         c1+=x[i][j];
+       }
 		}
 		CC.add(c1==1);
 		ostringstream nomcst;
@@ -369,8 +371,6 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
   		if (i!=j)
       {
   				IloExpr c5(env);
-  				
-  				//c5 += w[i] - w[j] - (di - ( Q + di ) * ( 1 - x[i][j] ));
   			  c5 += w[i] - w[j] - (di -  (Q + di ) * ( 1 - x[i][j] ));
 
           cout << "w_"<<i<<" - w_"<<j<<" - ("<<di << " - ("<<Q+di<<" * (1-xij) )) >= 0"<<endl;
@@ -384,7 +384,7 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 			}
 		}
 	}
-  
+
 
 
 	model.add(CC);
@@ -446,8 +446,10 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 	list<pair<int,int>> sol;
 	for(i=0; i < G->nb_nodes; i++)
 		for (j=0; j < G->nb_nodes;j++)
-			if (i!=j && cplex.getValue(x[i][j])>1-epsilon) 
+			if (i!=j && cplex.getValue(x[i][j])>1-epsilon) {
 				sol.push_back(make_pair(i,j));
+        cout << "arc ("<<i<<","<<j<<")" << endl;
+      }
 
   ///////////////////////////////////////////////////////////////////
   // thomas added to post-treat the solution
@@ -465,7 +467,8 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
     for(j=1; j < N; j++) {
       if(i != j && cplex.getValue(x[i][j]) >1-epsilon) {
         val = j; //article i rangé dans la boite j
-        cout << "article_" << i <<"\t\tin box : " << j << "\t\t w_"<<i<<" = " << cplex.getValue(w[i]) <<endl;
+        //cout << "article_" << i <<"\t\tin box : " << j << "\t\t w_"<<i<<" = " << cplex.getValue(w[i]) <<endl;
+        cout << "article_" << i <<"\t\tin box : " << j << endl;
         solution_vec_out->push_back(j);
         unique_values.push_back(j);
         break;
