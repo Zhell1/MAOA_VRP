@@ -281,68 +281,67 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 	// la somme de toutes les aretes partant ou arrivant de j fait 1 (1 partant + 1 arrivant)
 
   //nombre max d'entrees/sorties depuis le depot <= m
-  // en cassant les symétries: on combine les deux en imposant <= 2m
   IloExpr c3(env);
   for (j=1; j < G->nb_nodes; j++){  //ok verifié
-    c3+=x[0][j]; // ok car on a tjr 0 < j 
+    //c3+=x[0][j]; // ok car on a tjr 0 < j
+    c3 += x[0][j] ;
   }
-  CC.add(c3<=2*m);
+  CC.add(c3<=m);
   ostringstream nomcst;
   nomcst.str("");
-  nomcst<<"CstMax_fromto_depot";
+  nomcst<<"CstMax_from_depot";
   cout << nomcst.str() << endl;
   CC[nbcst].setName(nomcst.str().c_str());
   nbcst++;
   
-  /*
-  cout << "ok"<<endl;
+  
   IloExpr c4(env);
   for (i=1; i < G->nb_nodes; i++){   //ok verifié
-    c4+=x[i][0];
+    c4 += x[i][0];
   }
   CC.add(c4<=m);
   ostringstream nomcst2;
   nomcst2.str("");
-  nomcst2<<"CstMax_type2_depot";
+  nomcst2<<"CstMax_to_depot";
   cout << nomcst2.str() << endl;
   CC[nbcst].setName(nomcst2.str().c_str());
   nbcst++;
-  */
+  
 
-  // en cassant les symétries: on combine les deux en imposant == 2
-  for (i=1; i < G->nb_nodes; i++){ // ∀i ∈ NC
+  for (i=0; i < G->nb_nodes; i++){ // ∀i ∈ NC
     IloExpr c2(env);
-    for (j=1; j < G->nb_nodes; j++){
+    for (j=0; j < G->nb_nodes; j++){
       if(i!=j) {
         c2+=x[i][j];
       }
     }
-    CC.add(c2==2);
+    CC.add(c2==1);
     ostringstream nomcst;
     nomcst.str("");
-    nomcst<<"Cst_fromto_"<<i;
+    nomcst<<"Cst_from_"<<i;
     cout << nomcst.str() << endl;
     CC[nbcst].setName(nomcst.str().c_str());
     nbcst++;
   }
-/*
-	for (j=1; j < G->nb_nodes; j++){ // ∀i ∈ NC
+
+	for (j=0; j < G->nb_nodes; j++){ // ∀i ∈ NC
 		IloExpr c1(env);
-		for (i=1; i < G->nb_nodes; i++){
-			if (i < j) c1+=x[i][j];
+		for (i=0; i < G->nb_nodes; i++){
+			if (i != j) c1+=x[i][j];
 		}
 		CC.add(c1==1);
 		ostringstream nomcst;
 		nomcst.str("");
-		nomcst<<"CstOnce_to_"<<j;
+		nomcst<<"Cst_to_"<<j;
     cout << nomcst.str() << endl;
 		CC[nbcst].setName(nomcst.str().c_str());
 		nbcst++;
 	}
-	*/
+	
 
   //contraintes requises par le cassage des symétries: en ajoutant x[i,j] = x[j,i] en contrainte
   //TODO il y a peut-être moyen de ne pas avoir besoin de faire ça pour casser la symétrie ? plutot avec i < j ?
+  /*
   for (i=0; i < G->nb_nodes; i++) {
     for (j=0; j < G->nb_nodes; j++) { 
       if(i < j) { // i < j pour eviter les contraintes redondantes
@@ -355,35 +354,37 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
         cout << nomcst2.str() << endl;
         CC[nbcst].setName(nomcst2.str().c_str());
         nbcst++;
+        
       }
     }
   }
+  */
+	
+	// contraintes MTZ (pour i,j!=0)
+	for (i=1; i < G->nb_nodes; i++){
 
-	/*
-	//MTZ
-	//c=0;
-	for (c=0;c<m;c++){
-		for (i=0;i<G->nb_nodes;i++){
-			int di = G->V_nodes[i].VRP_demand;
-			for (j=0;j<G->nb_nodes;j++){
-				if (i!=j){
-					IloExpr c5(env);
-					
-					c5+=w[i][c] - w[j][c] - (di - (Q+di)*(1-x[i][j]));
-					
-					CC.add(c5>=0);
-					ostringstream nomcst3;
-					nomcst3.str("");
-					nomcst3<<"Cst_MTZ_"<<i<<"_"<<j;
-					CC[nbcst].setName(nomcst3.str().c_str());
-					nbcst++;
-				}
+		int di = G->V_nodes[i].VRP_demand;
+
+		for (j=1; j < G->nb_nodes; j++){
+  		if (i!=j)
+      {
+  				IloExpr c5(env);
+  				
+  				//c5 += w[i] - w[j] - (di - ( Q + di ) * ( 1 - x[i][j] ));
+  			  c5 += w[i] - w[j] - (di -  (Q + di ) * ( 1 - x[i][j] ));
+
+          cout << "w_"<<i<<" - w_"<<j<<" - ("<<di << " - ("<<Q+di<<" * (1-xij) )) >= 0"<<endl;
+
+  				CC.add(c5>=0);
+  				ostringstream nomcst3;
+  				nomcst3.str("");
+  				nomcst3<<"Cst_MTZ_"<<i<<"_"<<j;
+  				CC[nbcst].setName(nomcst3.str().c_str());
+  				nbcst++;
 			}
 		}
 	}
-	*/
-
-
+  
 
 
 	model.add(CC);
@@ -464,7 +465,7 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
     for(j=1; j < N; j++) {
       if(i != j && cplex.getValue(x[i][j]) >1-epsilon) {
         val = j; //article i rangé dans la boite j
-        cout << "article_" << i <<"\t\tin box : " << j << endl;
+        cout << "article_" << i <<"\t\tin box : " << j << "\t\t w_"<<i<<" = " << cplex.getValue(w[i]) <<endl;
         solution_vec_out->push_back(j);
         unique_values.push_back(j);
         break;
