@@ -447,13 +447,38 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 	env.out() << "Solution status = " << cplex.getStatus() << endl;
 	env.out() << "Solution value  = " << cplex.getObjValue() << endl;
 	
-	list<pair<int,int>> sol;
-	for(i=0; i < G->nb_nodes; i++)
-		for (j=0; j < G->nb_nodes;j++)
+	list<pair<int,int>> sol; // marche pour tous
+  map<int, int> solmap; // marche pour tous sauf le depot (car il y a plusieurs entrées avec le mm depot)
+	for(i=0; i < G->nb_nodes; i++) {
+		for (j=0; j < G->nb_nodes;j++) {
 			if (i!=j && cplex.getValue(x[i][j])>1-epsilon) {
 				sol.push_back(make_pair(i,j));
+        if(i != 0) solmap.insert(make_pair(i,j));
         cout << "arc ("<<i<<","<<j<<")" << endl;
       }
+    }
+  }
+
+  cout << "solution MTZ par tournées : " << endl;
+  int nbtournee =0;
+  tournees->clear();
+  //parcourir toutes les tournées depuis le dépot
+  for(auto it = sol.begin(); it != sol.end(); ++it) {
+    if(it->first == 0) {
+      vector<int> tempvecint;
+      //quand on trouve une tournée passant par 0 on la parcours jusqu'à revenir à 0
+      int courant = it->second;
+      cout << "\ttournée : "<< it->first;
+      while(courant != 0) {
+        tempvecint.push_back(courant);
+          cout << " -> " << courant;
+          courant = solmap.find(courant)->second;
+      }
+      cout << " -> 0"<< endl;
+      tournees->push_back(tempvecint);
+      nbtournee++;
+    }
+  }
 
 
   //END CPLEX
@@ -562,6 +587,7 @@ int main (int argc, char**argv){
 
   //on affiche toutes les tournées et leurs couts:
   cout << "after 2opt optimization : " << endl;
+  
   cout<<endl; print_all_tournees(tournees, G);
   */
   
@@ -571,7 +597,7 @@ int main (int argc, char**argv){
   
   //on affiche toutes les tournées et leurs couts:
   //cout << "after MTZ optimization : " << endl;
-  //cout<<endl; print_all_tournees(tournees, G);
+  cout<<endl; print_all_tournees(tournees, G);
   
   return 0;
 }
