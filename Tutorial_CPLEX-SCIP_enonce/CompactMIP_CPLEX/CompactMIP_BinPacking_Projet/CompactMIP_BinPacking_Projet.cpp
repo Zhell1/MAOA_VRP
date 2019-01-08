@@ -213,7 +213,6 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 	IloEnv   env;
 	IloModel model(env);
 
-
   cout << endl <<  "\n*** starting MTZ optimization ***\n"<< endl;
 
 	//TODO trouver un moyen de casser la symetrie
@@ -416,8 +415,9 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 			if (i!=j && cplex.getValue(x[i][j])>1-epsilon) 
 				sol.push_back(make_pair(i,j));
 
-  ///////////////////////////////////////////////////////////////////:
+  ///////////////////////////////////////////////////////////////////
   // thomas added to post-treat the solution
+  ///////////////////////////////////////////////////////////////////
   vector<int> solution_vec_out2;
 	vector<int> *solution_vec_out = &solution_vec_out2;
 
@@ -439,7 +439,6 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
     }
     sol_x_i[i] = val;
   }
-
   // sort and remove duplicate elements=
   std::sort(unique_values.begin(), unique_values.end()); // 1 1 2 2 3 3 3 4 4 5 5 6 7 
   auto last = std::unique(unique_values.begin(), unique_values.end());
@@ -470,8 +469,7 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
   //cout << endl;
 
   // FIN du traitement de sol_x_i
-
-  ///////////////////////////////////////////////////////////////////:
+  /////////////////////////////////////////////////////////////////// fin du post-traitement de la solution
 /*
 	// create SVG with solution
 	string name = "MTZ";
@@ -487,10 +485,15 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 		*  Lsol.push_back(make_pair(i,j));
 		*/
 
+  //END CPLEX
 	env.end();
 
-  name=name+"_MTZ";
 
+  ///////////////////////////////////////////////////////////////////
+  // save solution to .color and .svg
+  ///////////////////////////////////////////////////////////////////
+
+  name=name+"_MTZ";
   string nameextsol=name+".color";
 
   bool activateoutput = true; // todo put this at the beginning
@@ -538,10 +541,8 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
     //create svg with solution
     G->write_dot_G_color_svg(name.c_str(),sol);
 
-  } // end of :  if(activateoutput) {
-	
+  } // end of :  if(activateoutput) {}
 }
-
 
 
 int main (int argc, char**argv){
@@ -654,8 +655,6 @@ int main (int argc, char**argv){
   //on affiche toutes les tournées et leurs couts:
   //cout << "after MTZ optimization : " << endl;
   //cout<<endl; print_all_tournees(tournees, G);
-
-  
   
   return 0;
 }
