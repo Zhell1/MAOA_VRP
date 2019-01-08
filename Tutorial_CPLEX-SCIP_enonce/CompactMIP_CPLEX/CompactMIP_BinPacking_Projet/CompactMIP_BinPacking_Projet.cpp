@@ -459,9 +459,9 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
   vector<int>   sol_x_i;
   vector<int> unique_values = {};
   sol_x_i.resize(N);
-  for(i = 0; i < N; i++) {
+  for(i = 1; i < N; i++) {
     int val = 0;
-    for(j=0; j < N; j++) {
+    for(j=1; j < N; j++) {
       if(i != j && cplex.getValue(x[i][j]) >1-epsilon) {
         val = j; //article i rangé dans la boite j
         cout << "article_" << i <<"\t\tin box : " << j << endl;
