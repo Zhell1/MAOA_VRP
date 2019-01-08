@@ -232,40 +232,38 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 	//Q charge max d'un vehicule
 	//di demande du sommet i
 
-	//xij
-	vector<vector<IloNumVar> > x;
+	//x_i_j
+	vector<vector<IloNumVar>> x;
 	x.resize(G->nb_nodes);
 
-	for (i=0;i<G->nb_nodes;i++)
-		x[i].resize(G->nb_nodes);
-
-	for (i=0;i<G->nb_nodes;i++){
-		for (j=0;j<G->nb_nodes;j++) {
-			if (i!=j){
+	for (i=0; i<G->nb_nodes; i++){
+    x[i].resize(G->nb_nodes);
+		for (j=0; j<G->nb_nodes; j++) {
+			if (i!=j){ // thomas: ne pas faire i < j ici, on veut bien créer les variables
 				x[i][j]=IloNumVar(env, 0.0, 1.0, ILOINT);
 				ostringstream varname;
 				varname.str("");
 				varname<<"x_"<<i<<"_"<<j;
+        cout << varname.str() << endl;
 				x[i][j].setName(varname.str().c_str());
 			}
 		}
 	}
 
-	//wic
-	vector<vector<IloNumVar> > w;
-	w.resize(G->nb_nodes);
+  // on appelle le sommet 0 le dépôt et les sommets NC = N \ {0} les revendeurs (ou clients).
+	//w_i
+	vector<IloNumVar> w;
+	w.resize(G->nb_nodes); // prends pas en compte le sommet 0
 
-	for (i=0;i<G->nb_nodes;i++)
-		w[i].resize(m);
+  // thomas: tu avais fais des w_i_c mais en fait ce sont juste des w_i et on ne doit pas prendre le sommet 0
 
-	for (i=0;i<G->nb_nodes;i++){
-		for (c=0;c<m;c++) {
-			w[i][c]=IloNumVar(env, 0.0, Q, ILOFLOAT);
+	for (i=1; i < G->nb_nodes; i++){
+      w[i] = IloNumVar(env, 0.0, Q, ILOFLOAT); // 0 ≤ wi ≤ Q ∀i ∈ NC
 			ostringstream varname;
 			varname.str("");
-			varname<<"w_"<<i<<"_"<<c;
-			w[i][c].setName(varname.str().c_str());
-		}
+			varname<<"w_"<<i;
+      cout << varname.str() << endl;
+			w[i].setName(varname.str().c_str());
 	}
 
 	//////////////
@@ -279,58 +277,88 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 	// OU mettre a jour toutes les autres contraintes
 
 
+
 	// la somme de toutes les aretes partant ou arrivant de j fait 1 (1 partant + 1 arrivant)
-	for (j=1;j<G->nb_nodes;j++){
+
+  //nombre max d'entrees/sorties depuis le depot <= m
+  // en cassant les symétries: on combine les deux en imposant <= 2m
+  IloExpr c3(env);
+  for (j=1; j < G->nb_nodes; j++){  //ok verifié
+    c3+=x[0][j]; // ok car on a tjr 0 < j 
+  }
+  CC.add(c3<=2*m);
+  ostringstream nomcst;
+  nomcst.str("");
+  nomcst<<"CstMax_fromto_depot";
+  cout << nomcst.str() << endl;
+  CC[nbcst].setName(nomcst.str().c_str());
+  nbcst++;
+  
+  /*
+  cout << "ok"<<endl;
+  IloExpr c4(env);
+  for (i=1; i < G->nb_nodes; i++){   //ok verifié
+    c4+=x[i][0];
+  }
+  CC.add(c4<=m);
+  ostringstream nomcst2;
+  nomcst2.str("");
+  nomcst2<<"CstMax_type2_depot";
+  cout << nomcst2.str() << endl;
+  CC[nbcst].setName(nomcst2.str().c_str());
+  nbcst++;
+  */
+
+  // en cassant les symétries: on combine les deux en imposant == 2
+  for (i=1; i < G->nb_nodes; i++){ // ∀i ∈ NC
+    IloExpr c2(env);
+    for (j=1; j < G->nb_nodes; j++){
+      if(i!=j) {
+        c2+=x[i][j];
+      }
+    }
+    CC.add(c2==2);
+    ostringstream nomcst;
+    nomcst.str("");
+    nomcst<<"Cst_fromto_"<<i;
+    cout << nomcst.str() << endl;
+    CC[nbcst].setName(nomcst.str().c_str());
+    nbcst++;
+  }
+/*
+	for (j=1; j < G->nb_nodes; j++){ // ∀i ∈ NC
 		IloExpr c1(env);
-		for (i=0;i<G->nb_nodes;i++){
-			if (i!=j) c1+=x[i][j];
+		for (i=1; i < G->nb_nodes; i++){
+			if (i < j) c1+=x[i][j];
 		}
 		CC.add(c1==1);
 		ostringstream nomcst;
 		nomcst.str("");
 		nomcst<<"CstOnce_to_"<<j;
+    cout << nomcst.str() << endl;
 		CC[nbcst].setName(nomcst.str().c_str());
 		nbcst++;
 	}
-	
-	
-		
-	for (i=1;i<G->nb_nodes;i++){
-		IloExpr c2(env);
-		for (j=0;j<G->nb_nodes;j++){
-			if (i!=j) c2+=x[i][j];
-		}
-		CC.add(c2==1);
-		ostringstream nomcst;
-		nomcst.str("");
-		nomcst<<"CstOnce_from_"<<i;
-		CC[nbcst].setName(nomcst.str().c_str());
-		nbcst++;
-	}
-	
-	//nombre max d'entrees/sorties depuis le depot
-	IloExpr c3(env);
-	for (i=1;i<G->nb_nodes;i++){
-		c3+=x[0][i];
-	}
-	CC.add(c3<=m);
-	ostringstream nomcst;
-	nomcst.str("");
-	nomcst<<"CstMax_tours_from";
-	CC[nbcst].setName(nomcst.str().c_str());
-	nbcst++;
-	
-	IloExpr c4(env);
-	for (i=1;i<G->nb_nodes;i++){
-		c4+=x[i][0];
-	}
-	CC.add(c4<=m);
-	ostringstream nomcst2;
-	nomcst2.str("");
-	nomcst2<<"CstMax_tours_to";
-	CC[nbcst].setName(nomcst2.str().c_str());
-	nbcst++;
-	
+	*/
+
+  //contraintes requises par le cassage des symétries: en ajoutant x[i,j] = x[j,i] en contrainte
+  //TODO il y a peut-être moyen de ne pas avoir besoin de faire ça pour casser la symétrie ? plutot avec i < j ?
+  for (i=0; i < G->nb_nodes; i++) {
+    for (j=0; j < G->nb_nodes; j++) { 
+      if(i < j) { // i < j pour eviter les contraintes redondantes
+        IloExpr csym(env);
+        csym = x[i][j] - x[j][i];
+        CC.add(csym==0);
+        ostringstream nomcst2;
+        nomcst2.str("");
+        nomcst2<<"Cst_x_"<<i<<"_"<<j<<"="<<"x_"<<j<<"_"<<i;
+        cout << nomcst2.str() << endl;
+        CC[nbcst].setName(nomcst2.str().c_str());
+        nbcst++;
+      }
+    }
+  }
+
 	/*
 	//MTZ
 	//c=0;
@@ -356,6 +384,8 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 	*/
 
 
+
+
 	model.add(CC);
 
 
@@ -363,12 +393,15 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 	////// OBj
 	//////////////
 
+  // min sum( cij * xij ) pour tout (i,j)€A 
+
 	IloObjective obj=IloAdd(model, IloMinimize(env, 0.0));
 
-	for (i=0;i<G->nb_nodes;i++)
-		for (j=0;j<G->nb_nodes;j++)
-			if (i!=j)
-				obj.setLinearCoef(x[i][j],G->lengthTSP(i,j));
+  //ici on prend bien en compte les arêtes partants et arrivants au sommet source 0
+	for (i=0; i < G->nb_nodes; i++)
+		for (j=0; j < G->nb_nodes; j++)
+			if (i<j) // previously if(i!=j)
+				obj.setLinearCoef(x[i][j], G->lengthTSP(i,j));
 			
 			
 	///////////
@@ -410,8 +443,8 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 	env.out() << "Solution value  = " << cplex.getObjValue() << endl;
 	
 	list<pair<int,int>> sol;
-	for(i = 0; i < G->nb_nodes; i++)
-		for (j=0;j < G->nb_nodes;j++)
+	for(i=0; i < G->nb_nodes; i++)
+		for (j=0; j < G->nb_nodes;j++)
 			if (i!=j && cplex.getValue(x[i][j])>1-epsilon) 
 				sol.push_back(make_pair(i,j));
 
@@ -429,7 +462,7 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
   for(i = 0; i < N; i++) {
     int val = 0;
     for(j=0; j < N; j++) {
-      if(i !=j && cplex.getValue(x[i][j]) >1-epsilon) {
+      if(i != j && cplex.getValue(x[i][j]) >1-epsilon) {
         val = j; //article i rangé dans la boite j
         cout << "article_" << i <<"\t\tin box : " << j << endl;
         solution_vec_out->push_back(j);
@@ -460,10 +493,11 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
   cout << endl;
   //maintenant on va post-traité le vecteur de solution pour être sûr de n'avoir que des valeurs 1,2,3,4 etc
   //car on peut avoir des valeurs du style: 1,2,287,548.. surtout avec de grands graphes
+  cout << "post treating solution vector... (N="<< N << ")" << endl;
   solution_vec_out->clear();
   for(i = 1; i < N; i++) {
+    cout << "sol_x_i["<<i<<"] = "<<sol_x_i[i]<< endl;;
     sol_x_i[i] = map_values.at(sol_x_i[i]);
-    //cout << "sol_x_i["<<i<<"] = "<<sol_x_i[i]<< endl;;
     solution_vec_out->push_back(sol_x_i[i]);
   }
   //cout << endl;
@@ -493,12 +527,15 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
   // save solution to .color and .svg
   ///////////////////////////////////////////////////////////////////
 
+
   name=name+"_MTZ";
   string nameextsol=name+".color";
 
   bool activateoutput = true; // todo put this at the beginning
 
   if(activateoutput) {
+
+    cout << "starting to save to .color and .svg files..." << endl;
 
     ofstream ficsol(nameextsol.c_str());
     
@@ -540,6 +577,7 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 
     //create svg with solution
     G->write_dot_G_color_svg(name.c_str(),sol);
+    cout << "wrote visualisation of solution to file: " << name.c_str() << "_G_color.svg" << endl;
 
   } // end of :  if(activateoutput) {}
 }
@@ -594,7 +632,7 @@ int main (int argc, char**argv){
     OBj: minimiser la somme toale des couts des arcs utilisés (sous contrainte de capacité des véhicules)
     rmq: on peut décrire une tournée par une liste de sommets (i0, i1, ...ip) comme le graphe est complet.
          tous les circuits commencent par le sommet 0 et finissent au sommet 0
-    TODO: -> peut-être ajouter métaheuristique en ajoutant une tournée vide au début qu'on supprime ensuite ?
+    TODO: -> peut-être ajouter métaheuristique en ajoutant une tournée vide au début qu'on supprime ensuite ?-> testé mais change rien ?
   */
   //création du vecteur de vecteurs contenant toutes les tournées (sans le sommet 0):
   vector<vector<int>> tournees;
