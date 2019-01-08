@@ -405,8 +405,8 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 	for (i=0; i < G->nb_nodes; i++){
 		for (j=0; j < G->nb_nodes; j++){
 			if (i!=j) {// previously if(i!=j) 
-        //obj.setLinearCoef(x[i][j], G->lengthTSP(i,j));
-        obj.setLinearCoef(x[i][j], 0); // affiche la première solution trouvée valide
+        obj.setLinearCoef(x[i][j], G->lengthTSP(i,j));
+        //obj.setLinearCoef(x[i][j], 0); // affiche la première solution trouvée valide
     }
    }
   }
@@ -452,14 +452,16 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 	
 
   //affichage des w_i
-  cout<<"---"<<endl;
+  /*cout<<"---"<<endl;
   for(int i = 1; i < G->nb_nodes; i++) {
     cout <<"w_" << i<<" = " << cplex.getValue(w[i]) << endl;
   }
   cout<<"---"<<endl;
+  */
 
   // on enregistre tous les arcs du graphe dans sol
   // et on va aussi exporter la solution dans le pointeur d'entrée "tournees"
+  cout << "\n MTZ arcs in graph solution : " << endl;
 	list<pair<int,int>> sol; // marche pour tous
   map<int, int> solmap; // marche pour tous sauf le depot (car il y a plusieurs entrées avec le mm depot)
 	for(i=0; i < G->nb_nodes; i++) {
@@ -472,8 +474,8 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
     }
   }
   //maintenant on sauvegarde ça dans "tournees"
-  cout << "solution MTZ par tournées : "<< endl;
   bool display_debug_mtz = false;
+  if(display_debug_mtz)  cout << "solution MTZ par tournées : "<< endl;
   int nbtournee =0;
   tournees->clear();
   //parcourir toutes les tournées depuis le dépot
@@ -610,7 +612,7 @@ int main (int argc, char**argv){
   optimizeMTZ(&tournees, G, filename);
   
   //on affiche toutes les tournées et leurs couts:
-  //cout << "after MTZ optimization : " << endl;
+  cout << "after MTZ optimization : " << endl;
   cout<<endl; print_all_tournees(tournees, G);
   
   return 0;
