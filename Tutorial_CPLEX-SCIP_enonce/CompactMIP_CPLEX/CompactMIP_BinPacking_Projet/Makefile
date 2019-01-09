@@ -24,9 +24,9 @@ LIBFORMAT  = static_pic
 # ---------------------------------------------------------------------
 
 #CCC = g++ -O0  #original
-CCC = g++ -O3 -w -std=c++11 -Wall -Wextra
-#-w remove warnings
-
+CCC = g++ -O3 -std=c++11
+#-w : remove warnings
+#-g : debug symbols
 
 # ---------------------------------------------------------------------
 # Compiler options 

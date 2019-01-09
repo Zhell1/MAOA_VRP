@@ -1,0 +1,8 @@
+ 
+*/*.o
+
+Instances/*/*.dot
+Instances/*/*.color
+Instances/*/*.svg
+
+CompactMIP_CPLEX/*/*.o
