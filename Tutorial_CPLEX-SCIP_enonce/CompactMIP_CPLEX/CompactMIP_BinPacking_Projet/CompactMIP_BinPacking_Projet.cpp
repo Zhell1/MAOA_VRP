@@ -272,10 +272,6 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 
 	IloRangeArray CC(env);
 	int nbcst=0;
-	
-	//TODO : tenter de couper la matrice des contraintes en 2 en remplacant i!=j par i < j et en ajoutant x[i,j] = x[j,i] en contrainte 
-	// OU mettre a jour toutes les autres contraintes
-
 
 
 	// la somme de toutes les aretes partant ou arrivant de j fait 1 (1 partant + 1 arrivant)
@@ -339,28 +335,6 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 		CC[nbcst].setName(nomcst.str().c_str());
 		nbcst++;
 	}
-	
-
-  //contraintes requises par le cassage des symétries: en ajoutant x[i,j] = x[j,i] en contrainte
-  //TODO il y a peut-être moyen de ne pas avoir besoin de faire ça pour casser la symétrie ? plutot avec i < j ?
-  /*
-  for (i=0; i < G->nb_nodes; i++) {
-    for (j=0; j < G->nb_nodes; j++) { 
-      if(i < j) { // i < j pour eviter les contraintes redondantes
-        IloExpr csym(env);
-        csym = x[i][j] - x[j][i];
-        CC.add(csym==0);
-        ostringstream nomcst2;
-        nomcst2.str("");
-        nomcst2<<"Cst_x_"<<i<<"_"<<j<<"="<<"x_"<<j<<"_"<<i;
-        cout << nomcst2.str() << endl;
-        CC[nbcst].setName(nomcst2.str().c_str());
-        nbcst++;
-        
-      }
-    }
-  }
-  */
 	
 	// contraintes MTZ (pour i quelconque et j!=0)
 	for (i=1; i < G->nb_nodes; i++){
