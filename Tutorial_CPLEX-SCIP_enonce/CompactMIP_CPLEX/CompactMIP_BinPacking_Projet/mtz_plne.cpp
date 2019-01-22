@@ -160,27 +160,6 @@ void optimizeMTZ_withsymmetry(vector<vector<int>> *tournees, C_Graph* G, string 
 		nbcst++;
 	}
 	
-
-  //contraintes requises par le cassage des symétries: en ajoutant x[i,j] = x[j,i] en contrainte
-  //TODO il y a peut-être moyen de ne pas avoir besoin de faire ça pour casser la symétrie ? plutot avec i < j ?
-  /*
-  for (i=0; i < G->nb_nodes; i++) {
-    for (j=0; j < G->nb_nodes; j++) { 
-      if(i < j) { // i < j pour eviter les contraintes redondantes
-        IloExpr csym(env);
-        csym = x[i][j] - x[j][i];
-        CC.add(csym==0);
-        ostringstream nomcst2;
-        nomcst2.str("");
-        nomcst2<<"Cst_x_"<<i<<"_"<<j<<"="<<"x_"<<j<<"_"<<i;
-        cout << nomcst2.str() << endl;
-        CC[nbcst].setName(nomcst2.str().c_str());
-        nbcst++;
-        
-      }
-    }
-  }
-  */
 	
 	// contraintes MTZ (pour i quelconque et j!=0)
 	for (i=1; i < G->nb_nodes; i++){
