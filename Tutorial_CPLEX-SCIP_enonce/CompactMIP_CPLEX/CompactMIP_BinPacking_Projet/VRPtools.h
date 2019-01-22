@@ -122,4 +122,82 @@ void print_all_tournees(vector<vector<int>> tournees, C_Graph* G) {
   }
   cout << "\t total_cost = " << G->get_VRP_cost(tournees) << endl;
 }
+
+
+
+
+C_Graph* intsol_to_undirected_C_Graph(vector<vector<int>> arcs, C_Graph* G){
+	C_Graph* mygraph = new C_Graph();
+	mygraph->directed = false;//G->directed;
+	mygraph->nb_nodes = G->nb_nodes; 
+
+	//we remove the symetries from arcs because we will call undirected_mincut later
+	for(int i=0; i < G->nb_nodes; i++) {
+		for(int j=0; j < G->nb_nodes; j++) {
+			if(arcs[i][j] == arcs[j][i]) {
+				arcs[j][i] = 0;
+			}
+		}
+	}
+	
+	//compter le nombre d'arcs à ajouter dans le graphe
+	int n = 0;
+	for(int i=0; i < G->nb_nodes; i++) {
+		for(int j=0; j < G->nb_nodes; j++) {
+			if(arcs[i][j] > 0) 
+				n++;
+		}
+	}
+
+	mygraph->nb_links = n;
+	
+	mygraph->V_nodes.resize(mygraph->nb_nodes);
+	mygraph->V_links.resize(mygraph->nb_links);
+
+
+	for (int i=0 ; i < mygraph->nb_nodes ;i++){ 
+		mygraph->V_nodes[i].num = i;				
+		mygraph->V_nodes[i].L_adjLinks.clear();
+		mygraph->V_nodes[i].weight=1;				// pas de poids sur les noeuds pour nous
+		mygraph->V_nodes[i].x = G->V_nodes[i].x;
+		mygraph->V_nodes[i].y = G->V_nodes[i].y;
+		mygraph->V_nodes[i].VRP_demand = G->V_nodes[i].VRP_demand;
+	}
+	
+	C_link *a;
+	int k = 0;
+	C_node *noeudi, *noeudj;
+	bool print_links = false; // make this true to print all the links as they are being added
+	
+	//ajout des liens
+	for(int i=0; i < mygraph->nb_nodes; i++) {
+		for(int j=0; j < mygraph->nb_nodes; j++) {
+			if(arcs[i][j] > 0) {
+				if(print_links) cout << "adding undirected link : " << i << " <-> " << j << " of "<<mygraph->nb_nodes<<" nodes"<<endl;
+				a = new C_link;
+				a->num = k;
+				noeudi = &(mygraph->V_nodes[i]); // V_nodes[i] because we use int i = 0 to start
+				noeudj = &(mygraph->V_nodes[j]);
+				a->v1 = min(noeudi->num, noeudj->num);
+				a->v2 = max(noeudi->num ,noeudj->num); 
+				//a->length = EUC_2D(noeudi->x, noeudi->y, noeudj->x, noeudj->y); // why not ? it's cheap
+				mygraph->V_nodes[i].L_adjLinks.push_back(a);
+				mygraph->V_nodes[j].L_adjLinks.push_back(a); //si on met dans les sens  = version non dirigée Undirected, sinon changer, voir code dans C_graph.cpp
+				mygraph->V_links[k] = a;
+				//a->length = EUC_2D(noeudi->x, noeudi->y, noeudj->x, noeudj->y);
+				//cout << G->V_links[k]->length << endl;
+				a->algo_cost = 1;
+				k++;
+			}
+		}
+	}
+
+	//cout << k << " / " <<mygraph->nb_links << endl;
+
+  	mygraph->construct_Undirected_Lemon_Graph();
+
+	return mygraph;
+}
+
+
 #endif

@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <string>
 #include <sstream>
+#include <algorithm>
 
 #include"../../Graph/Graph.h"
 #include "./VRPfileParser.h"
@@ -20,6 +21,120 @@
 #define epsilon 0.00001
 
 using namespace std;
+
+bool vector_contains(vector<int> listint, int val){
+  for(int i=0; i < listint.size(); i++) {
+    if(listint[i] == val)
+      return true;
+  }
+  return false;
+}
+
+//Coupe Min inequality separation algorithm
+void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>>& x, vector<vector<float>>&fracsol, list<IloRange> & L_ViolatedCst){
+
+  // arrondis toutes les valeurs puis on fait une recherche de coupe min
+  vector<vector<int>> intsol;
+  intsol.resize(G->nb_nodes);
+  for(int i=0;i<G->nb_nodes;i++)
+    intsol[i].resize(G->nb_nodes);
+      
+
+  for(int i = 0; i < G->nb_nodes; i++) {
+    for(int j = 0; j < G->nb_nodes; j++) {
+        intsol[i][j] = 0; //init val
+        //intsol[i][j] = (int)(fracsol[i][j]+0.5); 
+        //+0.5 pour arrondis classique , prendre +0.99 pour l'arrondis au supérieur
+        if(fracsol[i][j]>0.4) intsol[i][j] = 1;
+      
+     // cout << fracsol[i][j] << "   " ;
+    }
+  }
+
+  C_Graph* undirected_graph;
+  undirected_graph = intsol_to_undirected_C_Graph(intsol, G);
+
+  //pas besoin d'enlever le sommet 0 car chaque arc à son inverse et on coupe en mode non-orienté
+  // ça revient donc au même (si le sommet 0 est dans pas S il est dans non_S)
+
+  list<int> listcut;
+  double mincutval = undirected_graph->Undirected_MinimumCut(listcut); 
+
+  vector<int> vectorcut;
+  vectorcut.insert(vectorcut.begin(), listcut.begin(),listcut.end()); //peut-être que ca tue la liste ?
+
+  //if(mincutval < 0)  mincutval = -1*mincutval; // TODO A VERIFIER, PEUT ETRE DEMANDER AU PROF ????????????????????????????????????????????????????
+
+  //TODO VOIR SI CEST <2 OU <1 VU QUE LA FONCTION DE COUPE EST UNDIRECTED
+  if(mincutval < 2 && vectorcut.size() >= 2) { // si contrainte violée et au moinds 2 sommets dedans
+    //on l'ajoute
+    cout << "valeur de la coupe min violant contrainte : " << mincutval << " de "<< vectorcut.size()<<" sommets"<< endl;
+   // cout << "vectorcut = ";
+   // for (auto i: vectorcut) std::cout << i << ' ';
+   // cout << endl;
+
+    IloExpr expr(env);
+    for(int i=0; i<G->nb_nodes;i++){
+      for(int j=0; j<G->nb_nodes;j++){
+        //if(i is in listcut && j is not in listcut)
+        if(vector_contains(vectorcut, i) && ! vector_contains(vectorcut, j))
+        {
+          expr+=x[i][j];
+        }
+      }
+    }
+
+    IloRange newCte = IloRange(expr >= 1);
+    //cout << newCte << endl;
+    L_ViolatedCst.push_back(newCte);
+  }
+}
+
+
+
+// USER CUTS AVEC LES INEGALITES DE COUPES MINCUT
+ILOUSERCUTCALLBACK2(UsercutCoupeMinSeparation,
+         C_Graph*, G,
+         vector<vector<IloNumVar>>&,x
+        ){
+  #ifdef OUTPUT
+  cout<<"********* UserCut separation Callback: coupe-min *************"<<endl;
+  #endif
+
+  vector<vector<float>> fracsol;
+  list<IloRange> L_ViolatedCst;
+
+  fracsol.resize(G->nb_nodes);
+  for(int i=0;i<G->nb_nodes;i++)
+    fracsol[i].resize(G->nb_nodes);
+      
+  for (int i=0;i<G->nb_nodes;i++) {
+      for (int j=0;j<G->nb_nodes;j++) {
+        if(i!=j) {
+          //cout << i << "   "<<j << "   " <<getValue(x[i][j]) << endl;
+          fracsol[i][j]= getValue(x[i][j]);
+        }
+      }
+  }
+ 
+  /* Separation of Circuit inequalities */
+  
+  L_ViolatedCst.clear();
+  find_ViolatedCoupeMinCst(getEnv(),G,x, fracsol, L_ViolatedCst);
+  
+  #ifdef OUTPUT
+  if (L_ViolatedCst.empty()) cout<<"No Cst found"<<endl;
+  #endif
+  
+  while (!L_ViolatedCst.empty()){
+    #ifdef OUTPUT
+      cout << "Adding constraint : " << L_ViolatedCst.front() << endl;
+    #endif
+    add(L_ViolatedCst.front(),IloCplex::UseCutForce); //UseCutPurge);
+    L_ViolatedCst.pop_front();
+  }
+
+}
 
 
 //PLNE utilisant la formulation compacte MTZ
@@ -214,6 +329,11 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 	//cout << CC << endl; //print all constraints
 	
 	IloCplex cplex(model);
+  
+  /// ADD SEPARATION CALLBACK
+  //cplex.use(LazyCoupeMinSeparation(env,G,x)); // TODO
+
+  cplex.use(UsercutCoupeMinSeparation(env,G,x));
 
 	// cplex.setParam(IloCplex::Cliques,-1);
 	// cplex.setParam(IloCplex::Covers,-1);
