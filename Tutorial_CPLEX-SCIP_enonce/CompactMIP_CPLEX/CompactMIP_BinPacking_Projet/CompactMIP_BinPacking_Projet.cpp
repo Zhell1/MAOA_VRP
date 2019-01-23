@@ -43,9 +43,7 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
   for(int i = 0; i < G->nb_nodes; i++) {
     for(int j = 0; j < G->nb_nodes; j++) {
         intsol[i][j] = 0; //init val
-        //intsol[i][j] = (int)(fracsol[i][j]+0.5); 
-        //+0.5 pour arrondis classique , prendre +0.99 pour l'arrondis au supérieur
-        if(fracsol[i][j]>0.4) intsol[i][j] = 1;
+        if(fracsol[i][j]>=0.5) intsol[i][j] = 1; //avec un seuil 0.5 = arrondis
       
      // cout << fracsol[i][j] << "   " ;
     }
@@ -63,15 +61,11 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
   vector<int> vectorcut;
   vectorcut.insert(vectorcut.begin(), listcut.begin(),listcut.end()); //peut-être que ca tue la liste ?
 
-  //if(mincutval < 0)  mincutval = -1*mincutval; // TODO A VERIFIER, PEUT ETRE DEMANDER AU PROF ????????????????????????????????????????????????????
-
   //TODO VOIR SI CEST <2 OU <1 VU QUE LA FONCTION DE COUPE EST UNDIRECTED
-  if(mincutval < 2 && vectorcut.size() >= 2) { // si contrainte violée et au moinds 2 sommets dedans
+  if(mincutval < 2 && vectorcut.size() >= 2) { // si contrainte violée et au moins 2 sommets dedans
     //on l'ajoute
-    cout << "valeur de la coupe min violant contrainte : " << mincutval << " de "<< vectorcut.size()<<" sommets"<< endl;
-   // cout << "vectorcut = ";
-   // for (auto i: vectorcut) std::cout << i << ' ';
-   // cout << endl;
+    
+    //cout << "valeur de la coupe min violant contrainte : " << mincutval << " de "<< vectorcut.size()<<" sommets"<< endl;
 
     IloExpr expr(env);
     for(int i=0; i<G->nb_nodes;i++){
@@ -83,13 +77,29 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
         }
       }
     }
+    //cout << expr << endl;
 
     IloRange newCte = IloRange(expr >= 1);
     //cout << newCte << endl;
     L_ViolatedCst.push_back(newCte);
+
+    // on peut aussi formuler la contrainte inverse: de NON_coupe vers coupe on veut aussi un arc sortant
+    IloExpr expr2(env);
+    for(int i=0; i<G->nb_nodes;i++){
+      for(int j=0; j<G->nb_nodes;j++){
+        if(! vector_contains(vectorcut, i) && vector_contains(vectorcut, j))
+        {
+          expr2+=x[i][j];
+        }
+      }
+    }
+    //cout << expr2 << endl;
+
+    IloRange newCte2 = IloRange(expr2 >= 1);
+    //cout << newCte << endl;
+    L_ViolatedCst.push_back(newCte2);
   }
 }
-
 
 
 // USER CUTS AVEC LES INEGALITES DE COUPES MINCUT
@@ -133,7 +143,6 @@ ILOUSERCUTCALLBACK2(UsercutCoupeMinSeparation,
     add(L_ViolatedCst.front(),IloCplex::UseCutForce); //UseCutPurge);
     L_ViolatedCst.pop_front();
   }
-
 }
 
 

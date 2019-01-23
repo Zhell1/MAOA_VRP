@@ -186,7 +186,7 @@ C_Graph* intsol_to_undirected_C_Graph(vector<vector<int>> arcs, C_Graph* G){
 				mygraph->V_links[k] = a;
 				//a->length = EUC_2D(noeudi->x, noeudi->y, noeudj->x, noeudj->y);
 				//cout << G->V_links[k]->length << endl;
-				a->algo_cost = 1;
+				a->algo_cost = 1; // cout de 1 pour toutes les arrêtes à couper dans mincut
 				k++;
 			}
 		}
