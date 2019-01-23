@@ -37,7 +37,10 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
   for(int i = 0; i < G->nb_nodes; i++) {
     for(int j = 0; j < G->nb_nodes; j++) {
         intsol[i][j] = 0; //init val
-        if(fracsol[i][j]>=0.5) intsol[i][j] = 1; //avec un seuil 0.5 = arrondis
+        if(fracsol[i][j] >= 0.5){ //avec un seuil 0.5 = arrondis
+            intsol[i][j] = 1;
+          //  intsol[j][i] = 1; //not needed for undirected graph
+         }
       
      // cout << fracsol[i][j] << "   " ;
     }
@@ -214,51 +217,6 @@ ILOUSERCUTCALLBACK2(UsercutCoupeMinSeparation,
     L_ViolatedCst.pop_front();
   }
 }
-
-// LAZY CUTS AVEC LES INEGALITES DE COUPES MINCUT
-ILOLAZYCONSTRAINTCALLBACK2(LazycutCoupeMinSeparation,
-         C_Graph*, G,
-         vector<vector<IloNumVar>>&,x
-        ){
-  #ifdef OUTPUT
-  cout<<"********* Lazy separation Callback: coupe-min *************"<<endl;
-  #endif
-
-  vector<vector<float>> fracsol;
-  list<IloRange> L_ViolatedCst;
-
-  fracsol.resize(G->nb_nodes);
-  for(int i=0;i<G->nb_nodes;i++)
-    fracsol[i].resize(G->nb_nodes);
-      
-  for (int i=0;i<G->nb_nodes;i++) {
-      for (int j=0;j<G->nb_nodes;j++) {
-        if(i < j) {
-          //cout << i << "   "<<j << "   " <<getValue(x[i][j]) << endl;
-          fracsol[i][j]= getValue(x[i][j]);
-        }
-      }
-  }
- 
-  /* Separation of Circuit inequalities */
-  
-  L_ViolatedCst.clear();
-  find_ViolatedCoupeMinCst(getEnv(),G,x, fracsol, L_ViolatedCst);
-  
-  #ifdef OUTPUT
-  if (L_ViolatedCst.empty()) cout<<"No Cst found"<<endl;
-  #endif
-  
-  while (!L_ViolatedCst.empty()){
-    #ifdef OUTPUT
-      cout << "Adding constraint : " << L_ViolatedCst.front() << endl;
-    #endif
-    add(L_ViolatedCst.front(),IloCplex::UseCutForce); //UseCutPurge);
-    L_ViolatedCst.pop_front();
-  }
-
-}
-
 
 // LAZY CUTS AVEC LES INEGALITES DE CAPACITE
 ILOLAZYCONSTRAINTCALLBACK2(LazycutCapacitySeparation,
@@ -848,7 +806,7 @@ void optimizeMTZ_undirected(vector<vector<int>> *tournees, C_Graph* G, string fi
     }
   }
   //maintenant on sauvegarde ça dans "tournees"
-  bool display_debug_undirected = false;
+  bool display_debug_undirected = true;
   if(display_debug_undirected)  cout << "solution undirected par tournées : "<< endl;
   int nbtournee =0;
   tournees->clear();
@@ -860,25 +818,29 @@ void optimizeMTZ_undirected(vector<vector<int>> *tournees, C_Graph* G, string fi
       //quand on trouve une tournée passant par 0 on la parcours jusqu'à revenir à 0
       int courant = sol[i].second;
       if(display_debug_undirected) cout << "tournée : "<< sol[i].first;
-      while(courant != 0) {
+      int lasti = i;
+      while(courant != 0 && ! vector_contains(alreadyseen, courant)) {
+          alreadyseen.push_back(courant);
           tempvecint.push_back(courant);
           if(display_debug_undirected) cout << "\t -> " << courant << "\td="<< G->get_node_by_id_startat0(courant)->VRP_demand << endl;
           int newcourant;
           //on commence par regarder si il y a au moins 2 edges avec le sommet courrant (un de chaque coté)
           int counterfound= vectorpairintcount(sol,courant);
-         // cout << "val "<<courant<<" found "<<counterfound<<" times"<<endl;
+          cout << "val "<<courant<<" found "<<counterfound<<" times"<<endl;
           if(counterfound >= 2) { // cycle de au moins 2+ sommets
-            newcourant = vectorpairintfind(sol, courant,i);
+            std::pair<int,int> found = vectorpairintfind(sol, courant,lasti);
+            newcourant = found.first;
+            lasti = found.second;
            // cout << "newcourant = "<<newcourant << endl;
           }
           else{ // aller retour direct depuis 0
             alreadyseen.push_back(courant);
             newcourant = 0;
           }
-          if(newcourant != 0)  alreadyseen.push_back(newcourant);
-          //cout << "alreadyseen = " << vectorint_tostring(alreadyseen) << endl;
+          //if(newcourant != 0)  alreadyseen.push_back(newcourant);
+          cout << "alreadyseen = " << vectorint_tostring(alreadyseen) << endl;
 
-          //cout << courant << " to " << newcourant << endl;
+          cout << courant << " to " << newcourant << endl;
           courant = newcourant;
       }
       if(display_debug_undirected) cout << "\t -> 0"<< endl;

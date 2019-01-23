@@ -207,22 +207,27 @@ bool vector_contains(vector<int> listint, int val){
   return false;
 }
 
-//return -1 if not found, otherwise return the first seen occurence of value for the found key (in both directions)
-int vectorpairintfind(vector<pair<int,int>> myvec, int key, int ignorei) {
+//return -1 if not found, otherwise return the first seen occurence of value for the found key (in both directions) + the position
+std::pair<int,int> vectorpairintfind(vector<pair<int,int>> myvec, int key, int ignorei) {
   //cout << "looking for key "<< key << endl;
+	std::pair<int,int> solution;
   for (int i = 0; i < myvec.size(); i++){
       //cout << "\t\t"<< it->first << "   "<<it->second << endl;
   	if(i!=ignorei) {
   	  std::pair<int,int> mypair = myvec[i];
 	  if(mypair.first == key) {
-	  	return mypair.second;
+	  	solution.first = mypair.second;
+	  	solution.second = i;
+	  	return solution;
 	  }
 	  if(mypair.second == key) {
-	  	return mypair.first;
+	  	solution.first = mypair.first;
+	  	solution.second = i;
+	  	return solution;
 	  }
 	}
   }
-  return -1;
+  return make_pair(-1,-1);
 }
 
 //return -1 if not found, otherwise return the first seen occurence of value for the found key
