@@ -112,7 +112,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
     for (int j=0; j < G->nb_nodes;j++) {
       if (i<j && intsol[i][j] > 0) {
         sol.push_back(make_pair(i,j));
-        cout << "edge ("<<i<<","<<j<<")" << endl;
+        //cout << "edge ("<<i<<","<<j<<")" << endl;
       }
     }
   }
@@ -180,7 +180,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
       }
       cout << endl;
   }
-  cout << "\t total_cost = " << G->get_VRP_cost_notalwaysfromDepot(tournees) << endl;
+  //cout << "\t total_cost = " << G->get_VRP_cost_notalwaysfromDepot(tournees) << endl;
 
 
   //on a toutes les tournées, on les parcours
@@ -188,45 +188,66 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
     vector<int> vectortournee = tournees.at(i);
     int tourneedemand = G->get_route_demand(tournees.at(i));
 
-    //on test si la contrainte de capacité est violée
-    double sumofS=0;
-    for(int i=1; i<G->nb_nodes;i++){
-      for(int j=0; j<G->nb_nodes;j++){
-          if(vector_contains(vectortournee, i) && ! vector_contains(vectortournee, j)
-            ||vector_contains(vectortournee, j) && ! vector_contains(vectortournee, i)){
-              if(i < j) {
-                sumofS+=intsol[i][j];
-              } else if(j < i ) {
-                sumofS+=intsol[j][i];
-              }
-          }
+    //l'ensemble S ne doit pas contenir le Dépot pour le test de la contrainte (4)
+    if(vector_contains(vectortournee, 0)) {
+      vector<int> tempvec;
+      //on parcours le vecteur et on supprime le dépot 0 (parfois il est au début mais parfois ailleurs)
+      for(int i=0; i < vectortournee.size(); i++) {
+        if(vectortournee[i] != 0) tempvec.push_back(vectortournee[i]);
       }
+      vectortournee.clear();
+      vectortournee.swap(tempvec); // exchange content
     }
-    cout << "testing capacity constraint, tournée #"<<i<<" : "<< sumofS << " >= " << (int)((2*tourneedemand/G->VRP_capacity)+0.999)<< " ?" <<endl;
+    //cout << ">>>>" << vectorint_tostring(vectortournee) << endl;
 
-    if (sumofS < (int)((2*tourneedemand/G->VRP_capacity)+0.999)) {
-       // contrainte de capacité violée donc on l'ajoute
-        IloExpr expr(env);
-        for(int i=1; i<G->nb_nodes;i++){
-          for(int j=0; j<G->nb_nodes;j++){
-              if(vector_contains(vectortournee, i) && ! vector_contains(vectortournee, j)
-                ||vector_contains(vectortournee, j) && ! vector_contains(vectortournee, i)){
-                  if(i < j) {
-                    expr+=x[i][j];
-                  } else if(j < i ) {
-                    expr+=x[j][i];
-                  }
-              }
-          }
+    //on test uniquement si la tournée est non-vide
+    if( vectortournee.size() > 0) {
+
+      //on test si la contrainte de capacité est violée
+      double sumofS=0;
+      for(int i=0; i<G->nb_nodes;i++){
+        for(int j=0; j<G->nb_nodes;j++){
+            if(vector_contains(vectortournee, i) && ! vector_contains(vectortournee, j)
+              ||vector_contains(vectortournee, j) && ! vector_contains(vectortournee, i)){
+                if(i < j) {
+                  sumofS+=intsol[i][j];
+                }
+                //else if(j < i ) {
+                //  sumofS+=intsol[j][i];
+                //}
+            }
         }
-        
-        cout << expr << endl;
+      }
+      //cout << "partiesup("<<(float)tourneedemand/(float)G->VRP_capacity<<") = "<<(int)( ((float)tourneedemand/(float)G->VRP_capacity)+0.999)<< endl;
+      int constraintval = 2.0*( (int)( ((float)tourneedemand/(float)G->VRP_capacity)+0.999)  );
+      cout << "testing capacity constraint, tournée #"<<i<<" : "<< sumofS << " >= " << constraintval << " ?" <<endl;
 
-        IloRange newCte = IloRange(expr >= (int)((2*tourneedemand/G->VRP_capacity)+0.999));
-        cout << newCte << endl;
-        L_ViolatedCst.push_back(newCte);
+      if (sumofS < constraintval) {
+         // contrainte de capacité violée donc on l'ajoute
+          IloExpr expr(env);
+          for(int i=0; i<G->nb_nodes;i++){
+            for(int j=0; j<G->nb_nodes;j++){
+                if(vector_contains(vectortournee, i) && ! vector_contains(vectortournee, j)
+                  ||vector_contains(vectortournee, j) && ! vector_contains(vectortournee, i)){
+                    if(i < j) {
+                      expr+=x[i][j];
+                      //cout << i << " " << j << endl;
+                    }
+                    //else if(j < i ) {
+                    //  expr+=x[j][i];
+                    //}
+                }
+            }
+          }
+          
+          //cout << expr << endl;
 
-        cout << "valeur capacité violant contrainte : " << tourneedemand << " de "<< vectortournee.size()<<" sommets"<< endl;
+          IloRange newCte = IloRange(expr >= constraintval);
+          //cout << newCte << endl;
+          L_ViolatedCst.push_back(newCte);
+
+          cout << "\tvaleur capacité violant contrainte : " << tourneedemand << " de "<< vectortournee.size()<<" sommets"<< endl;
+      }
     }
   }
 
@@ -301,7 +322,7 @@ ILOUSERCUTCALLBACK2(UsercutCoupeMinSeparation,
     L_ViolatedCst.pop_front();
   }
 }
-#define OUTPUT
+//#define OUTPUT
 // LAZY CUTS AVEC LES INEGALITES DE CAPACITE
 ILOLAZYCONSTRAINTCALLBACK2(LazycutCapacitySeparation,
          C_Graph*, G,
@@ -321,7 +342,7 @@ ILOLAZYCONSTRAINTCALLBACK2(LazycutCapacitySeparation,
   for (int i=0;i<G->nb_nodes;i++) {
       for (int j=0;j<G->nb_nodes;j++) {
         if(i < j) {
-          if(getValue(x[i][j]) > 0 ) cout <<" getValue  "<< i << "   "<<j << "   " <<getValue(x[i][j]) << endl;
+          //if(getValue(x[i][j]) > 0 ) cout <<" getValue  "<< i << "   "<<j << "   " <<getValue(x[i][j]) << endl;
           sol[i][j]= getValue(x[i][j]);
         }
       }
