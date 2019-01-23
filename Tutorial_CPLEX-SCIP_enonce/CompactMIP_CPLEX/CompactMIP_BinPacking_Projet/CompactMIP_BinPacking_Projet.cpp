@@ -102,7 +102,7 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
 //Capacity inequality separation algorithm
 void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>>& x, vector<vector<int>>&intsol, list<IloRange> & L_ViolatedCst){
   cout << "YOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO" << endl;
-  vector<vector<int>> *tournees;
+  vector<vector<int>> tournees;
   //copied from optimize_undirected()
 
   //on va aussi exporter la solution dans le pointeur d'entrée "tournees"
@@ -120,7 +120,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
   bool display_debug_undirected = true;
   if(display_debug_undirected)  cout << "solution undirected par tournées : "<< endl;
   int nbtournee =0;
-  tournees->clear();
+  tournees.clear();
   vector<int> alreadyseen; //for all but sommet 0
   //parcourir toutes les tournées depuis le dépot
   for(int i = 0; i < sol.size(); i ++) {
@@ -163,7 +163,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
           courant = newcourant;
       }
       if(display_debug_undirected) cout << "\t -> 0"<< endl;
-      tournees->push_back(tempvecint);
+      tournees.push_back(tempvecint);
       nbtournee++;
     }
   }
@@ -171,22 +171,22 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
   //on affiche toutes les tournées et leurs couts:
   cout << "tournées : "<< endl;
   //pour chacune des tournées
-  for(int i = 0; i < tournees->size(); i++) {
-      cout << "\t tournée #"<<i<< " (cost= "<< G->get_route_cost_notalwaysfromDepot(tournees->at(i)) << ") (demand="<<G->get_route_demand(tournees->at(i)) <<") : ";
+  for(int i = 0; i < tournees.size(); i++) {
+      cout << "\t tournée #"<<i<< " (cost= "<< G->get_route_cost_notalwaysfromDepot(tournees.at(i)) << ") (demand="<<G->get_route_demand(tournees.at(i)) <<") : ";
       //on lit toute la tournée
-      for(int j = 0; j < tournees->at(i).size(); j++){
+      for(int j = 0; j < tournees.at(i).size(); j++){
           //on extrait les sommets de la tournée à enregistrer
-          cout << tournees->at(i).at(j) <<" ";
+          cout << tournees.at(i).at(j) <<" ";
       }
       cout << endl;
   }
-  cout << "\t total_cost = " << G->get_VRP_cost_notalwaysfromDepot(*tournees) << endl;
+  cout << "\t total_cost = " << G->get_VRP_cost_notalwaysfromDepot(tournees) << endl;
 
 
   //on a toutes les tournées, on les parcours
-  for(int i = 0; i < tournees->size(); i++) {
-    vector<int> vectortournee = tournees->at(i);
-    int tourneedemand = G->get_route_demand(tournees->at(i));
+  for(int i = 0; i < tournees.size(); i++) {
+    vector<int> vectortournee = tournees.at(i);
+    int tourneedemand = G->get_route_demand(tournees.at(i));
     if (tourneedemand > G->VRP_capacity) {
        // contrainte de capacité violée donc on l'ajoute
         IloExpr expr(env);
@@ -220,10 +220,17 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
 	//TODO 
 	
 	vector<vector<float>> fracsol;
+	fracsol.resize(G->nb_nodes);
+	for(int i = 0; i < G->nb_nodes; i++) {
+		fracsol[i].resize(G->nb_nodes);
+	}
 	
 	for(int i = 0; i < G->nb_nodes; i++) {
 		for(int j = 0; j < G->nb_nodes; j++) {
-			fracsol[i][j] = intsol[i][j];
+			if(i < j) fracsol[i][j] = intsol[i][j];
+			else if (i > j){
+				fracsol[i][j] = intsol[j][i];
+			}
 		}
 	}
 	
