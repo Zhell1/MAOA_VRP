@@ -22,13 +22,7 @@
 
 using namespace std;
 
-bool vector_contains(vector<int> listint, int val){
-  for(int i=0; i < listint.size(); i++) {
-    if(listint[i] == val)
-      return true;
-  }
-  return false;
-}
+
 
 //Coupe Min inequality separation algorithm
 void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>>& x, vector<vector<float>>&fracsol, list<IloRange> & L_ViolatedCst){
@@ -43,12 +37,7 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
   for(int i = 0; i < G->nb_nodes; i++) {
     for(int j = 0; j < G->nb_nodes; j++) {
         intsol[i][j] = 0; //init val
-        //intsol[i][j] = (int)(fracsol[i][j]+0.5); 
-        //+0.5 pour arrondis classique , prendre +0.99 pour l'arrondis au supérieur
-        if( i < j && fracsol[i][j]>0.4){
-			intsol[i][j] = 1;
-			intsol[j][i] = 1;
-		}
+        if(fracsol[i][j]>=0.5) intsol[i][j] = 1; //avec un seuil 0.5 = arrondis
       
      // cout << fracsol[i][j] << "   " ;
     }
@@ -69,10 +58,8 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
   //TODO VOIR SI CEST <2 OU <1 VU QUE LA FONCTION DE COUPE EST UNDIRECTED
   if(mincutval < 2 && vectorcut.size() >= 2) { // si contrainte violée et au moins 2 sommets dedans
     //on l'ajoute
-    cout << "valeur de la coupe min violant contrainte : " << mincutval << " de "<< vectorcut.size()<<" sommets"<< endl;
-   // cout << "vectorcut = ";
-   // for (auto i: vectorcut) std::cout << i << ' ';
-   // cout << endl;
+    
+    //cout << "valeur de la coupe min violant contrainte : " << mincutval << " de "<< vectorcut.size()<<" sommets"<< endl;
 
     IloExpr expr(env);
     for(int i=0; i<G->nb_nodes;i++){
@@ -84,10 +71,27 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
         }
       }
     }
+    //cout << expr << endl;
 
     IloRange newCte = IloRange(expr >= 1);
     //cout << newCte << endl;
     L_ViolatedCst.push_back(newCte);
+
+    // on peut aussi formuler la contrainte inverse: de NON_coupe vers coupe on veut aussi un arc sortant
+    IloExpr expr2(env);
+    for(int i=0; i<G->nb_nodes;i++){
+      for(int j=0; j<G->nb_nodes;j++){
+        if(! vector_contains(vectorcut, i) && vector_contains(vectorcut, j))
+        {
+          expr2+=x[i][j];
+        }
+      }
+    }
+    //cout << expr2 << endl;
+
+    IloRange newCte2 = IloRange(expr2 >= 1);
+    //cout << newCte << endl;
+    L_ViolatedCst.push_back(newCte2);
   }
 }
 
@@ -165,7 +169,6 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
   }
 }
 
-
 // USER CUTS AVEC LES INEGALITES DE COUPES MINCUT
 ILOUSERCUTCALLBACK2(UsercutCoupeMinSeparation,
          C_Graph*, G,
@@ -207,7 +210,6 @@ ILOUSERCUTCALLBACK2(UsercutCoupeMinSeparation,
     add(L_ViolatedCst.front(),IloCplex::UseCutForce); //UseCutPurge);
     L_ViolatedCst.pop_front();
   }
-
 }
 
 // LAZY CUTS AVEC LES INEGALITES DE COUPES MINCUT
@@ -825,38 +827,58 @@ void optimizeMTZ_undirected(vector<vector<int>> *tournees, C_Graph* G, string fi
   cout<<"---"<<endl;
   */
 
+  //on va convertir la version non-orientée en version orientée pour la conversion en tournées
+
   // on enregistre tous les arcs du graphe dans sol
   // et on va aussi exporter la solution dans le pointeur d'entrée "tournees"
-  cout << "\n arcs in graph solution : " << endl;
-	list<pair<int,int>> sol; // marche pour tous
-  map<int, int> solmap; // marche pour tous sauf le depot (car il y a plusieurs entrées avec le mm depot)
+
+  cout << "\n edges in undirected graph solution : " << endl;
+	vector<pair<int,int>> sol; // marche pour tous
+  vector<pair<int, int>> sol_inverse;
 	for(i=0; i < G->nb_nodes; i++) {
 		for (j=0; j < G->nb_nodes;j++) {
 			if (i<j && cplex.getValue(x[i][j])>1-epsilon) {
 				sol.push_back(make_pair(i,j));
-        if(i != 0) solmap.insert(make_pair(i,j));
-        cout << "arc ("<<i<<","<<j<<")" << endl;
+        sol_inverse.push_back(make_pair(j,i));
+        cout << "edge ("<<i<<","<<j<<")" << endl;
       }
     }
   }
   //maintenant on sauvegarde ça dans "tournees"
-  bool display_debug_mtz = false;
-  if(display_debug_mtz)  cout << "solution par tournées : "<< endl;
+  bool display_debug_undirected = false;
+  if(display_debug_undirected)  cout << "solution undirected par tournées : "<< endl;
   int nbtournee =0;
   tournees->clear();
+  vector<int> alreadyseen; //for all but sommet 0
   //parcourir toutes les tournées depuis le dépot
-  for(auto it = sol.begin(); it != sol.end(); ++it) {
-    if(it->first == 0) {
-      vector<int> tempvecint;
+  for(int i = 0; i < sol.size(); i ++) {
+    if(sol[i].first == 0 && ! vector_contains(alreadyseen, sol[i].second) ) { // si pas déjà vu ce cycle
+      vector<int> tempvecint; // la tournée 
       //quand on trouve une tournée passant par 0 on la parcours jusqu'à revenir à 0
-      int courant = it->second;
-      if(display_debug_mtz) cout << "tournée : "<< it->first;
+      int courant = sol[i].second;
+      if(display_debug_undirected) cout << "tournée : "<< sol[i].first;
       while(courant != 0) {
-        tempvecint.push_back(courant);
-          if(display_debug_mtz) cout << "\t -> " << courant << "\td="<< G->get_node_by_id_startat0(courant)->VRP_demand << endl;
-          courant = solmap.find(courant)->second;
+          tempvecint.push_back(courant);
+          if(display_debug_undirected) cout << "\t -> " << courant << "\td="<< G->get_node_by_id_startat0(courant)->VRP_demand << endl;
+          int newcourant;
+          //on commence par regarder si il y a au moins 2 edges avec le sommet courrant (un de chaque coté)
+          int counterfound= vectorpairintcount(sol,courant);
+         // cout << "val "<<courant<<" found "<<counterfound<<" times"<<endl;
+          if(counterfound >= 2) { // cycle de au moins 2+ sommets
+            newcourant = vectorpairintfind(sol, courant,i);
+           // cout << "newcourant = "<<newcourant << endl;
+          }
+          else{ // aller retour direct depuis 0
+            alreadyseen.push_back(courant);
+            newcourant = 0;
+          }
+          if(newcourant != 0)  alreadyseen.push_back(newcourant);
+          //cout << "alreadyseen = " << vectorint_tostring(alreadyseen) << endl;
+
+          //cout << courant << " to " << newcourant << endl;
+          courant = newcourant;
       }
-      if(display_debug_mtz) cout << "\t -> 0"<< endl;
+      if(display_debug_undirected) cout << "\t -> 0"<< endl;
       tournees->push_back(tempvecint);
       nbtournee++;
     }
@@ -867,6 +889,7 @@ void optimizeMTZ_undirected(vector<vector<int>> *tournees, C_Graph* G, string fi
 	env.end();
 
 }
+
 
 
 int main (int argc, char**argv){
@@ -976,10 +999,16 @@ int main (int argc, char**argv){
   
   ///////////////////////////////////////////////////////////////////////////////////// fin métaheuristique itérative par voisinage
   
-  optimizeMTZ_undirected(&tournees, G, filename);
-  
+  /*
+  optimizeMTZ(&tournees, G, filename);
   //on affiche toutes les tournées et leurs couts:
   cout << "after MTZ optimization : " << endl;
+  cout<<endl; print_all_tournees(tournees, G);
+  */
+
+  optimizeMTZ_undirected(&tournees, G, filename);
+  //on affiche toutes les tournées et leurs couts:
+  cout << "after undirected optimization : " << endl;
   cout<<endl; print_all_tournees(tournees, G);
   
   //write to svg

@@ -26,6 +26,7 @@ LIBFORMAT  = static_pic
 #CCC = g++ -O0  #original
 CCC = g++ -O0 -g -std=c++11  #version pour debug avec valgrind
 #CCC = g++ -O3 -std=c++11 -w
+#CCC = g++ -O3 -std=c++11 -w #without warnings
 #-w : remove warnings
 #-g : debug symbols
 
