@@ -202,9 +202,9 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
           }
       }
     }
-    cout << "testing capacity constraint, tournée #"<<i<<" : "<< sumofS << " >= " << 2*(int)((tourneedemand/G->VRP_capacity)+0.999) << " ?" <<endl;
+    cout << "testing capacity constraint, tournée #"<<i<<" : "<< sumofS << " >= " << 2*(int)((tourneedemand/(float)G->VRP_capacity)+0.999f) << " ?" <<endl;
 
-    if (sumofS < 2*(int)((tourneedemand/G->VRP_capacity)+0.999)) {
+    if (sumofS < 2*(int)((tourneedemand/(float)G->VRP_capacity)+0.999f)) {
        // contrainte de capacité violée donc on l'ajoute
         IloExpr expr(env);
         for(int i=1; i<G->nb_nodes;i++){
@@ -222,7 +222,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
         
         cout << expr << endl;
 
-        IloRange newCte = IloRange(expr >= 2*(int)((tourneedemand/G->VRP_capacity)+0.999));
+        IloRange newCte = IloRange(expr >= 2*(int)((tourneedemand/(float)G->VRP_capacity)+0.999f));
         cout << newCte << endl;
         L_ViolatedCst.push_back(newCte);
 
