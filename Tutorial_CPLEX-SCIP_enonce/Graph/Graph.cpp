@@ -95,6 +95,35 @@ float C_Graph::get_route_demand(vector<int> route) {
   return total_demand;
 }
 
+
+// OK VERIFIE
+float C_Graph::get_route_cost_notalwaysfromDepot(vector<int> route) {
+  if(route.size() == 0) return 0;
+  float cost = 0;
+  //cout << "(0->"<<route.at(0)<<") ";
+  //parcours des arcs de la tournée
+  for(int i = 0; i < route.size()-1; i++) {
+      cost += get_node_by_id_startat0(route.at(i))->getDistanceFrom_startat0(route.at(i+1));
+      //cout << "("<<route.at(i)<<"->"<<route.at(i+1)<<") ";
+  }
+  //now we need to add the last cost to close the cycle => from 0 to size-1
+  cost += get_node_by_id_startat0(route.at(0))->getDistanceFrom_startat0(route.at(route.size()-1));
+  //cout << "("<<route.at(route.size()-1)<<"->0)" << endl;
+  // retourne la cout total
+  return cost;
+}
+float C_Graph::get_VRP_cost_notalwaysfromDepot(vector<vector<int>> tournees) {
+  float total_cost = 0;
+
+  for(int i = 0; i < tournees.size(); i++) {
+    total_cost += get_route_cost_notalwaysfromDepot(tournees.at(i));
+  }
+
+  return total_cost;
+}
+
+
+
 /***************** FIN VRP ADDED ****************************/
 
 

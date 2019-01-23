@@ -16,6 +16,9 @@
 using namespace std;
 
 string vectorint_tostring(vector<int> my_vector) {
+	if(my_vector.size()==0) {
+		return "";	
+	}
   std::stringstream result;
   std::copy(my_vector.begin(), my_vector.end(), std::ostream_iterator<int>(result, " "));
   return result.str().c_str();

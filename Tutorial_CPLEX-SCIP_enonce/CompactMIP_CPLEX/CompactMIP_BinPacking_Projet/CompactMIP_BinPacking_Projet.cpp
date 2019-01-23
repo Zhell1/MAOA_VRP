@@ -117,41 +117,49 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
     }
   }
   //maintenant on sauvegarde ça dans "tournees"
-  bool display_debug_undirected = false;
+  bool display_debug_undirected = true;
   if(display_debug_undirected)  cout << "solution undirected par tournées : "<< endl;
   int nbtournee =0;
   tournees->clear();
   vector<int> alreadyseen; //for all but sommet 0
   //parcourir toutes les tournées depuis le dépot
   for(int i = 0; i < sol.size(); i ++) {
-    if(sol[i].first == 0 && ! vector_contains(alreadyseen, sol[i].second) ) { // si pas déjà vu ce cycle
+    //if(sol[i].first == 0 && ! vector_contains(alreadyseen, sol[i].second) ) { // si pas déjà vu ce cycle
+    int debutcyclecourant;
+    if(sol[i].first == 0 && !vector_contains(alreadyseen, sol[i].second) // si pas déjà vu ce cycle et commence par 0
+        || (sol[i].first != 0 && !vector_contains(alreadyseen, sol[i].first)))  // si pas déjà vu ce cycle et commence PAS par 0
+      {
+      debutcyclecourant = sol[i].first;
       vector<int> tempvecint; // la tournée 
-      //quand on trouve une tournée passant par 0 on la parcours jusqu'à revenir à 0
+      tempvecint.push_back(debutcyclecourant);
+      if(sol[i].first != 0) alreadyseen.push_back(debutcyclecourant);
+      cout << debutcyclecourant << " to " << sol[i].second << endl;
+      //quand on trouve une tournée passant par X on la parcours jusqu'à revenir à X
       int courant = sol[i].second;
-      if(display_debug_undirected) cout << "tournée : "<< sol[i].first;
+      if(display_debug_undirected) cout << "tournée : "<< debutcyclecourant;
       int lasti = i;
-      while(courant != 0 && ! vector_contains(alreadyseen, courant)) {
+      while(courant != debutcyclecourant && ! vector_contains(alreadyseen, courant)) {
           alreadyseen.push_back(courant);
           tempvecint.push_back(courant);
           if(display_debug_undirected) cout << "\t -> " << courant << "\td="<< G->get_node_by_id_startat0(courant)->VRP_demand << endl;
           int newcourant;
           //on commence par regarder si il y a au moins 2 edges avec le sommet courrant (un de chaque coté)
           int counterfound= vectorpairintcount(sol,courant);
-          //cout << "val "<<courant<<" found "<<counterfound<<" times"<<endl;
+          cout << "val "<<courant<<" found "<<counterfound<<" times"<<endl;
           if(counterfound >= 2) { // cycle de au moins 2+ sommets
             std::pair<int,int> found = vectorpairintfind(sol, courant,lasti);
             newcourant = found.first;
             lasti = found.second;
-           // cout << "newcourant = "<<newcourant << endl;
+            //cout << "newcourant = "<<newcourant << endl;
           }
           else{ // aller retour direct depuis 0
-            alreadyseen.push_back(courant);
+            if(courant!=0) alreadyseen.push_back(courant);
             newcourant = 0;
           }
-          //if(newcourant != 0)  alreadyseen.push_back(newcourant);
-          //cout << "alreadyseen = " << vectorint_tostring(alreadyseen) << endl;
+          //cout <<" alreadyseen.size() = " << alreadyseen.size() << endl; 
+          //cout << "alreadyseen = " << vectorint_tostring(alreadyseen) << endl; //segfault but why ?
 
-          //cout << courant << " to " << newcourant << endl;
+          cout << courant << " to " << newcourant << endl;
           courant = newcourant;
       }
       if(display_debug_undirected) cout << "\t -> 0"<< endl;
@@ -160,7 +168,21 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
     }
   }
 
-  cout<<endl; print_all_tournees(tournees, G);
+  //on affiche toutes les tournées et leurs couts:
+  cout << "tournées : "<< endl;
+  //pour chacune des tournées
+  for(int i = 0; i < tournees->size(); i++) {
+      cout << "\t tournée #"<<i<< " (cost= "<< G->get_route_cost_notalwaysfromDepot(tournees->at(i)) << ") (demand="<<G->get_route_demand(tournees->at(i)) <<") : ";
+      //on lit toute la tournée
+      for(int j = 0; j < tournees->at(i).size(); j++){
+          //on extrait les sommets de la tournée à enregistrer
+          cout << tournees->at(i).at(j) <<" ";
+      }
+      cout << endl;
+  }
+  cout << "\t total_cost = " << G->get_VRP_cost_notalwaysfromDepot(*tournees) << endl;
+
+
 
   //on a toutes les tournées, on les parcours
   for(int i = 0; i < tournees->size(); i++) {
