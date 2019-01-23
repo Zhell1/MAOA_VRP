@@ -202,7 +202,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
           }
       }
     }
-    cout << "testing capacity constraint : "<< sumofS << " >= " << (int)((2*tourneedemand/G->VRP_capacity)+0.999)<< " ?" <<endl;
+    cout << "testing capacity constraint, tournée #"<<i<<" : "<< sumofS << " >= " << (int)((2*tourneedemand/G->VRP_capacity)+0.999)<< " ?" <<endl;
 
     if (sumofS < (int)((2*tourneedemand/G->VRP_capacity)+0.999)) {
        // contrainte de capacité violée donc on l'ajoute
