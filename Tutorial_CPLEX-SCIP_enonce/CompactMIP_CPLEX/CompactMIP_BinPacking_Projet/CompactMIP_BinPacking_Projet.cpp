@@ -37,7 +37,10 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
   for(int i = 0; i < G->nb_nodes; i++) {
     for(int j = 0; j < G->nb_nodes; j++) {
         intsol[i][j] = 0; //init val
-        if(fracsol[i][j]>=0.5) intsol[i][j] = 1; //avec un seuil 0.5 = arrondis
+        if(fracsol[i][j] >= 0.5){ //avec un seuil 0.5 = arrondis
+            intsol[i][j] = 1;
+          //  intsol[j][i] = 1; //not needed for undirected graph
+         }
       
      // cout << fracsol[i][j] << "   " ;
     }
