@@ -101,78 +101,106 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
 
 //Capacity inequality separation algorithm
 void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>>& x, vector<vector<int>>&intsol, list<IloRange> & L_ViolatedCst){
+  cout << "YOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO" << endl;
+  vector<vector<int>> *tournees;
+  //copied from optimize_undirected()
 
-	/*
-  // arrondis toutes les valeurs puis on fait une recherche de coupe min
-  vector<vector<int>> intsol;
-  intsol.resize(G->nb_nodes);
-  for(int i=0;i<G->nb_nodes;i++)
-    intsol[i].resize(G->nb_nodes);
-      
-  for(int i = 0; i < G->nb_nodes; i++) {
-    for(int j = 0; j < G->nb_nodes; j++) {
-        intsol[i][j] = 0; //init val
-        //intsol[i][j] = (int)(sol[i][j]+0.5); 
-        //+0.5 pour arrondis classique , prendre +0.99 pour l'arrondis au supérieur
-        if( i < j && sol[i][j]>0.4){
-			intsol[i][j] = 1;
-			intsol[j][i] = 1;
-		}
-      
-     // cout << sol[i][j] << "   " ;
+  //on va aussi exporter la solution dans le pointeur d'entrée "tournees"
+  //cout << "\n edges in undirected graph solution : " << endl;
+  vector<pair<int,int>> sol; // marche pour tous
+  for(int i=0; i < G->nb_nodes; i++) {
+    for (int j=0; j < G->nb_nodes;j++) {
+      if (i<j && intsol[i][j] == 1) {
+        sol.push_back(make_pair(i,j));
+        //cout << "edge ("<<i<<","<<j<<")" << endl;
+      }
     }
   }
-*/
+  //maintenant on sauvegarde ça dans "tournees"
+  bool display_debug_undirected = false;
+  if(display_debug_undirected)  cout << "solution undirected par tournées : "<< endl;
+  int nbtournee =0;
+  tournees->clear();
+  vector<int> alreadyseen; //for all but sommet 0
+  //parcourir toutes les tournées depuis le dépot
+  for(int i = 0; i < sol.size(); i ++) {
+    if(sol[i].first == 0 && ! vector_contains(alreadyseen, sol[i].second) ) { // si pas déjà vu ce cycle
+      vector<int> tempvecint; // la tournée 
+      //quand on trouve une tournée passant par 0 on la parcours jusqu'à revenir à 0
+      int courant = sol[i].second;
+      if(display_debug_undirected) cout << "tournée : "<< sol[i].first;
+      int lasti = i;
+      while(courant != 0 && ! vector_contains(alreadyseen, courant)) {
+          alreadyseen.push_back(courant);
+          tempvecint.push_back(courant);
+          if(display_debug_undirected) cout << "\t -> " << courant << "\td="<< G->get_node_by_id_startat0(courant)->VRP_demand << endl;
+          int newcourant;
+          //on commence par regarder si il y a au moins 2 edges avec le sommet courrant (un de chaque coté)
+          int counterfound= vectorpairintcount(sol,courant);
+          //cout << "val "<<courant<<" found "<<counterfound<<" times"<<endl;
+          if(counterfound >= 2) { // cycle de au moins 2+ sommets
+            std::pair<int,int> found = vectorpairintfind(sol, courant,lasti);
+            newcourant = found.first;
+            lasti = found.second;
+           // cout << "newcourant = "<<newcourant << endl;
+          }
+          else{ // aller retour direct depuis 0
+            alreadyseen.push_back(courant);
+            newcourant = 0;
+          }
+          //if(newcourant != 0)  alreadyseen.push_back(newcourant);
+          //cout << "alreadyseen = " << vectorint_tostring(alreadyseen) << endl;
+
+          //cout << courant << " to " << newcourant << endl;
+          courant = newcourant;
+      }
+      if(display_debug_undirected) cout << "\t -> 0"<< endl;
+      tournees->push_back(tempvecint);
+      nbtournee++;
+    }
+  }
+
+  cout<<endl; print_all_tournees(tournees, G);
+
+  //on a toutes les tournées, on les parcours
+  for(int i = 0; i < tournees->size(); i++) {
+    vector<int> vectortournee = tournees->at(i);
+    int tourneedemand = G->get_route_demand(tournees->at(i));
+    if (tourneedemand > G->VRP_capacity) {
+       // contrainte de capacité violée donc on l'ajoute
+        IloExpr expr(env);
+        for(int i=1; i<G->nb_nodes;i++){
+          for(int j=0; j<G->nb_nodes;j++){
+            if(i < j && vector_contains(vectortournee, i) && ! vector_contains(vectortournee, j))
+            {
+              expr+=x[i][j];
+            }
+          }
+        }
+        //cout << expr << endl;
+
+        IloRange newCte = IloRange(expr >= (int)((2*tourneedemand/G->VRP_capacity)+0.999));
+        cout << newCte << endl;
+        L_ViolatedCst.push_back(newCte);
+
+        cout << "valeur capcité violant contrainte : " << tourneedemand << " de "<< vectortournee.size()<<" sommets"<< endl;
+    }
+  }
+
+
+/*
 	//mirror solution to construct graph
 	for(int i = 0; i < G->nb_nodes; i++) {
 		for(int j = 0; j < G->nb_nodes; j++) {
 			if(i > j) intsol[i][j] = intsol[j][i];
 		}
 	}
-	
+	*/
 	//TODO 
 	
 	
 	
 	
-	
-	//TODO check constraint as last resort
-	
-  C_Graph* undirected_graph;
-  undirected_graph = intsol_to_undirected_C_Graph(intsol, G);
-
-  //pas besoin d'enlever le sommet 0 car chaque arc à son inverse et on coupe en mode non-orienté
-  // ça revient donc au même (si le sommet 0 est dans pas S il est dans non_S)
-
-  list<int> listcut;
-  double mincutval = undirected_graph->Undirected_MinimumCut(listcut); 
-
-  vector<int> vectorcut;
-  vectorcut.insert(vectorcut.begin(), listcut.begin(),listcut.end()); //peut-être que ca tue la liste ?
-
-  //TODO VOIR SI CEST <2 OU <1 VU QUE LA FONCTION DE COUPE EST UNDIRECTED
-  if(mincutval < 2 && vectorcut.size() >= 2) { // si contrainte violée et au moins 2 sommets dedans
-    //on l'ajoute
-    cout << "valeur de la coupe min violant contrainte : " << mincutval << " de "<< vectorcut.size()<<" sommets"<< endl;
-   // cout << "vectorcut = ";
-   // for (auto i: vectorcut) std::cout << i << ' ';
-   // cout << endl;
-
-    IloExpr expr(env);
-    for(int i=0; i<G->nb_nodes;i++){
-      for(int j=0; j<G->nb_nodes;j++){
-        //if(i is in listcut && j is not in listcut)
-        if( i < j && vector_contains(vectorcut, i) && ! vector_contains(vectorcut, j))
-        {
-          expr+=x[i][j];
-        }
-      }
-    }
-
-    IloRange newCte = IloRange(expr >= 1);
-    //cout << newCte << endl;
-    L_ViolatedCst.push_back(newCte);
-  }
 }
 
 // USER CUTS AVEC LES INEGALITES DE COUPES MINCUT
@@ -544,7 +572,7 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 
 
 //PLNE utilisant la formulation non dirigée
-void optimizeMTZ_undirected(vector<vector<int>> *tournees, C_Graph* G, string filename){
+void optimize_undirected(vector<vector<int>> *tournees, C_Graph* G, string filename){
 	//m est le nombre de tournées
 	int m = tournees->size();
 	int Q = (*G).VRP_capacity; // capacité max des véhicules
@@ -788,19 +816,13 @@ void optimizeMTZ_undirected(vector<vector<int>> *tournees, C_Graph* G, string fi
   cout<<"---"<<endl;
   */
 
-  //on va convertir la version non-orientée en version orientée pour la conversion en tournées
-
-  // on enregistre tous les arcs du graphe dans sol
-  // et on va aussi exporter la solution dans le pointeur d'entrée "tournees"
-
+  //on va aussi exporter la solution dans le pointeur d'entrée "tournees"
   cout << "\n edges in undirected graph solution : " << endl;
 	vector<pair<int,int>> sol; // marche pour tous
-  vector<pair<int, int>> sol_inverse;
 	for(i=0; i < G->nb_nodes; i++) {
 		for (j=0; j < G->nb_nodes;j++) {
 			if (i<j && cplex.getValue(x[i][j])>1-epsilon) {
 				sol.push_back(make_pair(i,j));
-        sol_inverse.push_back(make_pair(j,i));
         cout << "edge ("<<i<<","<<j<<")" << endl;
       }
     }
@@ -971,7 +993,7 @@ int main (int argc, char**argv){
   cout<<endl; print_all_tournees(tournees, G);
   */
 
-  optimizeMTZ_undirected(&tournees, G, filename);
+  optimize_undirected(&tournees, G, filename);
   //on affiche toutes les tournées et leurs couts:
   cout << "after undirected optimization : " << endl;
   cout<<endl; print_all_tournees(tournees, G);
