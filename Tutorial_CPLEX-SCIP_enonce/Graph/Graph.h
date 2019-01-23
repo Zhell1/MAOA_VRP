@@ -99,12 +99,18 @@ public:
   float get_distance_startat0(int node1, int node2);
 
   //prend tournée sans le sommet 0, numérotée de 1 à N (ex: {15, 16, 17, 19, 21, 29} )
-  //renvoie le cout total de la tournée **en prenant en compte le sommet 0** !
+  //renvoie le cout total de la tournée **en prenant en compte le sommet 0** ajouté à la volé !
+  // le sommet 0 ne DOIT PAS  etre dans le vector route 
   float get_route_cost(vector<int> route); //added thomas
   //similaire à ci-dessus mais cette fois avec toutes les tournées d'un coup en entrée
   float get_VRP_cost(vector<vector<int>> tournees);
   //renvoie la capacité utilisée par cette tournée (somme des demandes des clients)
   float get_route_demand(vector<int> route);
+  ///////////////////////////////
+  //these are used when you want cycles that don't necessarily are from and to Depot
+  // in this case you MUST add the node 0 in the route vector
+  float get_route_cost_notalwaysfromDepot(vector<int> route);
+  float get_VRP_cost_notalwaysfromDepot(vector<vector<int>> tournees);
   /************************************/
 
   /*********************************************/
