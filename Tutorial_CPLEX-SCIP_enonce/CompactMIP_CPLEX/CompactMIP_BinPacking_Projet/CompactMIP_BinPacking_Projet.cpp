@@ -799,7 +799,7 @@ void optimize_undirected(vector<vector<int>> *tournees, C_Graph* G, string filen
   nbcst++;
   */
 
-  for (i=1; i < G->nb_nodes-1; i++){ // ∀i ∈ NC
+  for (i=1; i < G->nb_nodes; i++){ // ∀i ∈ NC
     IloExpr c2(env);
     for (j=0; j < G->nb_nodes; j++){
       if(i < j) {
@@ -925,15 +925,13 @@ void optimize_undirected(vector<vector<int>> *tournees, C_Graph* G, string filen
 	// cplex.setParam(IloCplex::ClockType,1);
 	// cplex.setParam(IloCplex::RINSHeur,-1);
 
-
-	string sortielp = /*filename+*/"sortie.lp";
-	cplex.exportModel(sortielp.c_str());
-
 	if ( !cplex.solve() ) {
 		env.error() << "Failed to optimize LP" << endl;
 		exit(1);
 	}
 
+	string sortielp = /*filename+*/"sortie.lp";
+	cplex.exportModel(sortielp.c_str());
 
 	env.out() << "Solution status = " << cplex.getStatus() << endl;
 	env.out() << "Solution value  = " << cplex.getObjValue() << endl;
