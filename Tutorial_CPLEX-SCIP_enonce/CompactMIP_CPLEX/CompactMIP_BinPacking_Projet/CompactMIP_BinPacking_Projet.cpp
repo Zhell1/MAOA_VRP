@@ -160,7 +160,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
     }
   }
 
-  cout<<endl; print_all_tournees(tournees, G);
+  //cout<<endl; print_all_tournees(tournees, G);
 
   //on a toutes les tournées, on les parcours
   for(int i = 0; i < tournees->size(); i++) {
@@ -198,9 +198,15 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
 	*/
 	//TODO 
 	
+	vector<vector<float>> fracsol;
 	
+	for(int i = 0; i < G->nb_nodes; i++) {
+		for(int j = 0; j < G->nb_nodes; j++) {
+			fracsol[i][j] = intsol[i][j];
+		}
+	}
 	
-	
+	find_ViolatedCoupeMinCst(env,G,x,fracsol,L_ViolatedCst);
 }
 
 // USER CUTS AVEC LES INEGALITES DE COUPES MINCUT
@@ -275,6 +281,50 @@ ILOLAZYCONSTRAINTCALLBACK2(LazycutCapacitySeparation,
   
   L_ViolatedCst.clear();
   find_ViolatedCapacityCst(getEnv(),G,x, sol, L_ViolatedCst);
+  
+  #ifdef OUTPUT
+  if (L_ViolatedCst.empty()) cout<<"No Cst found"<<endl;
+  #endif
+  
+  while (!L_ViolatedCst.empty()){
+    #ifdef OUTPUT
+      cout << "Adding constraint : " << L_ViolatedCst.front() << endl;
+    #endif
+    add(L_ViolatedCst.front(),IloCplex::UseCutForce); //UseCutPurge);
+    L_ViolatedCst.pop_front();
+  }
+
+}
+
+// LAZY CUTS AVEC LES INEGALITES DE CAPACITE
+ILOLAZYCONSTRAINTCALLBACK2(LazycutCoupeMinSeparation,
+         C_Graph*, G,
+         vector<vector<IloNumVar>>&,x
+        ){
+  #ifdef OUTPUT
+  cout<<"********* Lazy separation Callback: coupe-min *************"<<endl;
+  #endif
+
+  vector<vector<float>> sol;
+  list<IloRange> L_ViolatedCst;
+
+  sol.resize(G->nb_nodes);
+  for(int i=0;i<G->nb_nodes;i++)
+    sol[i].resize(G->nb_nodes);
+      
+  for (int i=0;i<G->nb_nodes;i++) {
+      for (int j=0;j<G->nb_nodes;j++) {
+        if(i < j) {
+          //cout << i << "   "<<j << "   " <<getValue(x[i][j]) << endl;
+          sol[i][j]= getValue(x[i][j]);
+        }
+      }
+  }
+ 
+  /* Separation of Circuit inequalities */
+  
+  L_ViolatedCst.clear();
+  find_ViolatedCoupeMinCst(getEnv(),G,x, sol, L_ViolatedCst);
   
   #ifdef OUTPUT
   if (L_ViolatedCst.empty()) cout<<"No Cst found"<<endl;
@@ -774,10 +824,12 @@ void optimize_undirected(vector<vector<int>> *tournees, C_Graph* G, string filen
 	IloCplex cplex(model);
   
   /// ADD SEPARATION CALLBACK
+	
 	cplex.use(LazycutCapacitySeparation(env,G,x));
-
 	//cplex.use(LazycutCoupeMinSeparation(env,G,x));
-
+	
+	
+	
 	// cplex.setParam(IloCplex::Cliques,-1);
 	// cplex.setParam(IloCplex::Covers,-1);
 	// cplex.setParam(IloCplex::DisjCuts,-1);
