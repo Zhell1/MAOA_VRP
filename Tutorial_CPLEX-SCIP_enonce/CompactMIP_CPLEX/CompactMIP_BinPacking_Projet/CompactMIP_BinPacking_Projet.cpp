@@ -220,7 +220,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
         }
       }
       //cout << "partiesup("<<(float)tourneedemand/(float)G->VRP_capacity<<") = "<<(int)( ((float)tourneedemand/(float)G->VRP_capacity)+0.999)<< endl;
-      int constraintval = 2.0*( (int)( ((float)tourneedemand/(float)G->VRP_capacity)+0.999)  );
+      int constraintval = 2 * (int)( std::ceil((double)tourneedemand/(double)G->VRP_capacity) );
       cout << "testing capacity constraint, tournée #"<<i<<" : "<< sumofS << " >= " << constraintval << " ?" <<endl;
 
       if (sumofS < constraintval) {
@@ -244,7 +244,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
           //cout << expr << endl;
 
           IloRange newCte = IloRange(expr >= constraintval);
-          //cout << newCte << endl;
+          cout << newCte << endl;
           L_ViolatedCst.push_back(newCte);
 
 
@@ -279,7 +279,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
 		}
 	}
 	
-	find_ViolatedCoupeMinCst(env,G,x,fracsol,L_ViolatedCst);
+	//find_ViolatedCoupeMinCst(env,G,x,fracsol,L_ViolatedCst);
 }
 
 // USER CUTS AVEC LES INEGALITES DE COUPES MINCUT
@@ -346,6 +346,7 @@ ILOLAZYCONSTRAINTCALLBACK2(LazycutCapacitySeparation,
         if(i < j) {
           //if(getValue(x[i][j]) > 0 ) cout <<" getValue  "<< i << "   "<<j << "   " <<getValue(x[i][j]) << endl;
           sol[i][j]= getValue(x[i][j]);
+		  sol[j][i]= getValue(x[i][j]);
         }
       }
   }
