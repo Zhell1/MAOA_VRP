@@ -182,7 +182,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
   }
   cout << "\t total_cost = " << G->get_VRP_cost_notalwaysfromDepot(tournees) << endl;
 
-/*
+
   //on a toutes les tournées, on les parcours
   for(int i = 0; i < tournees.size(); i++) {
     vector<int> vectortournee = tournees.at(i);
@@ -197,13 +197,13 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
                   if(i < j) {
                     expr+=x[i][j];
                   } else if(j < i ) {
-                   // expr+=x[j][i];
+                    expr+=x[j][i];
                   }
               }
           }
         }
         
-        //cout << expr << endl;
+        cout << expr << endl;
 
         IloRange newCte = IloRange(expr >= (int)((2*tourneedemand/G->VRP_capacity)+0.999));
         cout << newCte << endl;
@@ -212,7 +212,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
         cout << "valeur capcité violant contrainte : " << tourneedemand << " de "<< vectortournee.size()<<" sommets"<< endl;
     }
   }
-*/
+
 
 /*
 	//mirror solution to construct graph
