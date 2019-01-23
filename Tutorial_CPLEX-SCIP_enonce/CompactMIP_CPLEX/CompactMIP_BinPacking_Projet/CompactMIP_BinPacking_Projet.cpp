@@ -806,7 +806,7 @@ void optimizeMTZ_undirected(vector<vector<int>> *tournees, C_Graph* G, string fi
     }
   }
   //maintenant on sauvegarde ça dans "tournees"
-  bool display_debug_undirected = true;
+  bool display_debug_undirected = false;
   if(display_debug_undirected)  cout << "solution undirected par tournées : "<< endl;
   int nbtournee =0;
   tournees->clear();
@@ -826,7 +826,7 @@ void optimizeMTZ_undirected(vector<vector<int>> *tournees, C_Graph* G, string fi
           int newcourant;
           //on commence par regarder si il y a au moins 2 edges avec le sommet courrant (un de chaque coté)
           int counterfound= vectorpairintcount(sol,courant);
-          cout << "val "<<courant<<" found "<<counterfound<<" times"<<endl;
+          //cout << "val "<<courant<<" found "<<counterfound<<" times"<<endl;
           if(counterfound >= 2) { // cycle de au moins 2+ sommets
             std::pair<int,int> found = vectorpairintfind(sol, courant,lasti);
             newcourant = found.first;
@@ -838,9 +838,9 @@ void optimizeMTZ_undirected(vector<vector<int>> *tournees, C_Graph* G, string fi
             newcourant = 0;
           }
           //if(newcourant != 0)  alreadyseen.push_back(newcourant);
-          cout << "alreadyseen = " << vectorint_tostring(alreadyseen) << endl;
+          //cout << "alreadyseen = " << vectorint_tostring(alreadyseen) << endl;
 
-          cout << courant << " to " << newcourant << endl;
+          //cout << courant << " to " << newcourant << endl;
           courant = newcourant;
       }
       if(display_debug_undirected) cout << "\t -> 0"<< endl;
