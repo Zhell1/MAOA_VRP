@@ -199,5 +199,45 @@ C_Graph* intsol_to_undirected_C_Graph(vector<vector<int>> arcs, C_Graph* G){
 	return mygraph;
 }
 
+bool vector_contains(vector<int> listint, int val){
+  for(int i=0; i < listint.size(); i++) {
+    if(listint[i] == val)
+      return true;
+  }
+  return false;
+}
+
+//return -1 if not found, otherwise return the first seen occurence of value for the found key (in both directions)
+int vectorpairintfind(vector<pair<int,int>> myvec, int key, int ignorei) {
+  //cout << "looking for key "<< key << endl;
+  for (int i = 0; i < myvec.size(); i++){
+      //cout << "\t\t"<< it->first << "   "<<it->second << endl;
+  	if(i!=ignorei) {
+  	  std::pair<int,int> mypair = myvec[i];
+	  if(mypair.first == key) {
+	  	return mypair.second;
+	  }
+	  if(mypair.second == key) {
+	  	return mypair.first;
+	  }
+	}
+  }
+  return -1;
+}
+
+//return -1 if not found, otherwise return the first seen occurence of value for the found key
+int vectorpairintcount(vector<pair<int,int>> myvec, int val) {
+  int counter = 0;
+  for (int i = 0; i < myvec.size(); i++){
+	  	std::pair<int,int> mypair = myvec[i];
+	      if(mypair.first == val || mypair.second==val) {
+	      	counter++;
+	      }
+	  
+  }
+  return counter;
+}
+
+
 
 #endif
