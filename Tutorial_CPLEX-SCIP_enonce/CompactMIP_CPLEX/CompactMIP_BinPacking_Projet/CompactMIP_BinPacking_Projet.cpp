@@ -216,6 +216,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
                 //  sumofS+=intsol[j][i];
                 //}
             }
+
         }
       }
       //cout << "partiesup("<<(float)tourneedemand/(float)G->VRP_capacity<<") = "<<(int)( ((float)tourneedemand/(float)G->VRP_capacity)+0.999)<< endl;
@@ -245,6 +246,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
           IloRange newCte = IloRange(expr >= constraintval);
           //cout << newCte << endl;
           L_ViolatedCst.push_back(newCte);
+
 
           cout << "\tvaleur capacité violant contrainte : " << tourneedemand << " de "<< vectortournee.size()<<" sommets"<< endl;
       }
