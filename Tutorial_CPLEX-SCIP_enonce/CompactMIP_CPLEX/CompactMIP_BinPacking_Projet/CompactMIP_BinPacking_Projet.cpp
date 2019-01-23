@@ -45,7 +45,10 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
         intsol[i][j] = 0; //init val
         //intsol[i][j] = (int)(fracsol[i][j]+0.5); 
         //+0.5 pour arrondis classique , prendre +0.99 pour l'arrondis au supérieur
-        if(fracsol[i][j]>0.4) intsol[i][j] = 1;
+        if( i < j && fracsol[i][j]>0.4){
+			intsol[i][j] = 1;
+			intsol[j][i] = 1;
+		}
       
      // cout << fracsol[i][j] << "   " ;
     }
@@ -75,7 +78,7 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
     for(int i=0; i<G->nb_nodes;i++){
       for(int j=0; j<G->nb_nodes;j++){
         //if(i is in listcut && j is not in listcut)
-        if(vector_contains(vectorcut, i) && ! vector_contains(vectorcut, j))
+        if( i < j && vector_contains(vectorcut, i) && ! vector_contains(vectorcut, j))
         {
           expr+=x[i][j];
         }
@@ -88,6 +91,79 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
   }
 }
 
+
+//Capacity inequality separation algorithm
+void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>>& x, vector<vector<int>>&intsol, list<IloRange> & L_ViolatedCst){
+
+	/*
+  // arrondis toutes les valeurs puis on fait une recherche de coupe min
+  vector<vector<int>> intsol;
+  intsol.resize(G->nb_nodes);
+  for(int i=0;i<G->nb_nodes;i++)
+    intsol[i].resize(G->nb_nodes);
+      
+  for(int i = 0; i < G->nb_nodes; i++) {
+    for(int j = 0; j < G->nb_nodes; j++) {
+        intsol[i][j] = 0; //init val
+        //intsol[i][j] = (int)(sol[i][j]+0.5); 
+        //+0.5 pour arrondis classique , prendre +0.99 pour l'arrondis au supérieur
+        if( i < j && sol[i][j]>0.4){
+			intsol[i][j] = 1;
+			intsol[j][i] = 1;
+		}
+      
+     // cout << sol[i][j] << "   " ;
+    }
+  }
+*/
+	//mirror solution to construct graph
+	for(int i = 0; i < G->nb_nodes; i++) {
+		for(int j = 0; j < G->nb_nodes; j++) {
+			if(i > j) intsol[i][j] = intsol[j][i];
+		}
+	}
+	
+	//TODO
+	
+	
+	
+	
+  C_Graph* undirected_graph;
+  undirected_graph = intsol_to_undirected_C_Graph(intsol, G);
+
+  //pas besoin d'enlever le sommet 0 car chaque arc à son inverse et on coupe en mode non-orienté
+  // ça revient donc au même (si le sommet 0 est dans pas S il est dans non_S)
+
+  list<int> listcut;
+  double mincutval = undirected_graph->Undirected_MinimumCut(listcut); 
+
+  vector<int> vectorcut;
+  vectorcut.insert(vectorcut.begin(), listcut.begin(),listcut.end()); //peut-être que ca tue la liste ?
+
+  //TODO VOIR SI CEST <2 OU <1 VU QUE LA FONCTION DE COUPE EST UNDIRECTED
+  if(mincutval < 2 && vectorcut.size() >= 2) { // si contrainte violée et au moins 2 sommets dedans
+    //on l'ajoute
+    cout << "valeur de la coupe min violant contrainte : " << mincutval << " de "<< vectorcut.size()<<" sommets"<< endl;
+   // cout << "vectorcut = ";
+   // for (auto i: vectorcut) std::cout << i << ' ';
+   // cout << endl;
+
+    IloExpr expr(env);
+    for(int i=0; i<G->nb_nodes;i++){
+      for(int j=0; j<G->nb_nodes;j++){
+        //if(i is in listcut && j is not in listcut)
+        if( i < j && vector_contains(vectorcut, i) && ! vector_contains(vectorcut, j))
+        {
+          expr+=x[i][j];
+        }
+      }
+    }
+
+    IloRange newCte = IloRange(expr >= 1);
+    //cout << newCte << endl;
+    L_ViolatedCst.push_back(newCte);
+  }
+}
 
 
 // USER CUTS AVEC LES INEGALITES DE COUPES MINCUT
@@ -119,6 +195,95 @@ ILOUSERCUTCALLBACK2(UsercutCoupeMinSeparation,
   
   L_ViolatedCst.clear();
   find_ViolatedCoupeMinCst(getEnv(),G,x, fracsol, L_ViolatedCst);
+  
+  #ifdef OUTPUT
+  if (L_ViolatedCst.empty()) cout<<"No Cst found"<<endl;
+  #endif
+  
+  while (!L_ViolatedCst.empty()){
+    #ifdef OUTPUT
+      cout << "Adding constraint : " << L_ViolatedCst.front() << endl;
+    #endif
+    add(L_ViolatedCst.front(),IloCplex::UseCutForce); //UseCutPurge);
+    L_ViolatedCst.pop_front();
+  }
+
+}
+
+// LAZY CUTS AVEC LES INEGALITES DE COUPES MINCUT
+ILOLAZYCONSTRAINTCALLBACK2(LazycutCoupeMinSeparation,
+         C_Graph*, G,
+         vector<vector<IloNumVar>>&,x
+        ){
+  #ifdef OUTPUT
+  cout<<"********* Lazy separation Callback: coupe-min *************"<<endl;
+  #endif
+
+  vector<vector<float>> fracsol;
+  list<IloRange> L_ViolatedCst;
+
+  fracsol.resize(G->nb_nodes);
+  for(int i=0;i<G->nb_nodes;i++)
+    fracsol[i].resize(G->nb_nodes);
+      
+  for (int i=0;i<G->nb_nodes;i++) {
+      for (int j=0;j<G->nb_nodes;j++) {
+        if(i < j) {
+          //cout << i << "   "<<j << "   " <<getValue(x[i][j]) << endl;
+          fracsol[i][j]= getValue(x[i][j]);
+        }
+      }
+  }
+ 
+  /* Separation of Circuit inequalities */
+  
+  L_ViolatedCst.clear();
+  find_ViolatedCoupeMinCst(getEnv(),G,x, fracsol, L_ViolatedCst);
+  
+  #ifdef OUTPUT
+  if (L_ViolatedCst.empty()) cout<<"No Cst found"<<endl;
+  #endif
+  
+  while (!L_ViolatedCst.empty()){
+    #ifdef OUTPUT
+      cout << "Adding constraint : " << L_ViolatedCst.front() << endl;
+    #endif
+    add(L_ViolatedCst.front(),IloCplex::UseCutForce); //UseCutPurge);
+    L_ViolatedCst.pop_front();
+  }
+
+}
+
+
+// LAZY CUTS AVEC LES INEGALITES DE CAPACITE
+ILOLAZYCONSTRAINTCALLBACK2(LazycutCapacitySeparation,
+         C_Graph*, G,
+         vector<vector<IloNumVar>>&,x
+        ){
+  #ifdef OUTPUT
+  cout<<"********* Lazy separation Callback: coupe-min *************"<<endl;
+  #endif
+
+  vector<vector<int>> sol;
+  list<IloRange> L_ViolatedCst;
+
+  sol.resize(G->nb_nodes);
+  for(int i=0;i<G->nb_nodes;i++)
+    sol[i].resize(G->nb_nodes);
+      
+  for (int i=0;i<G->nb_nodes;i++) {
+      for (int j=0;j<G->nb_nodes;j++) {
+        if(i < j) {
+          //cout << i << "   "<<j << "   " <<getValue(x[i][j]) << endl;
+          sol[i][j]= getValue(x[i][j]);
+        }
+      }
+  }
+ 
+  /* Separation of Circuit inequalities */
+  
+  L_ViolatedCst.clear();
+  find_ViolatedCapacityCst(getEnv(),G,x, sol, L_ViolatedCst);
   
   #ifdef OUTPUT
   if (L_ViolatedCst.empty()) cout<<"No Cst found"<<endl;
@@ -415,7 +580,7 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 }
 
 
-//PLNE utilisant la formulation compacte MTZ
+//PLNE utilisant la formulation non dirigée
 void optimizeMTZ_undirected(vector<vector<int>> *tournees, C_Graph* G, string filename){
 	//m est le nombre de tournées
 	int m = tournees->size();
@@ -620,7 +785,7 @@ void optimizeMTZ_undirected(vector<vector<int>> *tournees, C_Graph* G, string fi
   /// ADD SEPARATION CALLBACK
   //cplex.use(LazyCoupeMinSeparation(env,G,x)); // TODO
 
-  //cplex.use(UsercutCoupeMinSeparation(env,G,x));
+	cplex.use(LazycutCoupeMinSeparation(env,G,x));
 
 	// cplex.setParam(IloCplex::Cliques,-1);
 	// cplex.setParam(IloCplex::Covers,-1);
@@ -662,7 +827,7 @@ void optimizeMTZ_undirected(vector<vector<int>> *tournees, C_Graph* G, string fi
 
   // on enregistre tous les arcs du graphe dans sol
   // et on va aussi exporter la solution dans le pointeur d'entrée "tournees"
-  cout << "\n MTZ arcs in graph solution : " << endl;
+  cout << "\n arcs in graph solution : " << endl;
 	list<pair<int,int>> sol; // marche pour tous
   map<int, int> solmap; // marche pour tous sauf le depot (car il y a plusieurs entrées avec le mm depot)
 	for(i=0; i < G->nb_nodes; i++) {
@@ -676,7 +841,7 @@ void optimizeMTZ_undirected(vector<vector<int>> *tournees, C_Graph* G, string fi
   }
   //maintenant on sauvegarde ça dans "tournees"
   bool display_debug_mtz = false;
-  if(display_debug_mtz)  cout << "solution MTZ par tournées : "<< endl;
+  if(display_debug_mtz)  cout << "solution par tournées : "<< endl;
   int nbtournee =0;
   tournees->clear();
   //parcourir toutes les tournées depuis le dépot
