@@ -65,7 +65,7 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
     for(int i=0; i<G->nb_nodes;i++){
       for(int j=0; j<G->nb_nodes;j++){
         //if(i is in listcut && j is not in listcut)
-        if( i < j && vector_contains(vectorcut, i) && ! vector_contains(vectorcut, j))
+        if(i < j && vector_contains(vectorcut, i) && ! vector_contains(vectorcut, j))
         {
           expr+=x[i][j];
         }
@@ -81,7 +81,7 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
     IloExpr expr2(env);
     for(int i=0; i<G->nb_nodes;i++){
       for(int j=0; j<G->nb_nodes;j++){
-        if(! vector_contains(vectorcut, i) && vector_contains(vectorcut, j))
+        if(i < j && ! vector_contains(vectorcut, i) && vector_contains(vectorcut, j))
         {
           expr2+=x[i][j];
         }
@@ -127,10 +127,13 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
 		}
 	}
 	
-	//TODO
+	//TODO 
 	
 	
 	
+	
+	
+	//TODO check constraint as last resort
 	
   C_Graph* undirected_graph;
   undirected_graph = intsol_to_undirected_C_Graph(intsol, G);
@@ -785,9 +788,9 @@ void optimizeMTZ_undirected(vector<vector<int>> *tournees, C_Graph* G, string fi
 	IloCplex cplex(model);
   
   /// ADD SEPARATION CALLBACK
-  //cplex.use(LazyCoupeMinSeparation(env,G,x)); // TODO
+	cplex.use(LazycutCapacitySeparation(env,G,x));
 
-	cplex.use(LazycutCoupeMinSeparation(env,G,x));
+	//cplex.use(LazycutCoupeMinSeparation(env,G,x));
 
 	// cplex.setParam(IloCplex::Cliques,-1);
 	// cplex.setParam(IloCplex::Covers,-1);
