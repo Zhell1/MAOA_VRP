@@ -110,14 +110,14 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
   vector<pair<int,int>> sol; // marche pour tous
   for(int i=0; i < G->nb_nodes; i++) {
     for (int j=0; j < G->nb_nodes;j++) {
-      if (i<j && intsol[i][j] == 1) {
+      if (i<j && intsol[i][j] > 0) {
         sol.push_back(make_pair(i,j));
-        //cout << "edge ("<<i<<","<<j<<")" << endl;
+        cout << "edge ("<<i<<","<<j<<")" << endl;
       }
     }
   }
   //maintenant on sauvegarde ça dans "tournees"
-  bool display_debug_undirected = true;
+  bool display_debug_undirected = false;
   if(display_debug_undirected)  cout << "solution undirected par tournées : "<< endl;
   int nbtournee =0;
   tournees->clear();
@@ -132,20 +132,20 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
       debutcyclecourant = sol[i].first;
       vector<int> tempvecint; // la tournée 
       tempvecint.push_back(debutcyclecourant);
-      if(sol[i].first != 0) alreadyseen.push_back(debutcyclecourant);
-      cout << debutcyclecourant << " to " << sol[i].second << endl;
+      if(debutcyclecourant != 0) alreadyseen.push_back(debutcyclecourant);
+      if(display_debug_undirected)cout << debutcyclecourant << " to " << sol[i].second << endl;
       //quand on trouve une tournée passant par X on la parcours jusqu'à revenir à X
       int courant = sol[i].second;
       if(display_debug_undirected) cout << "tournée : "<< debutcyclecourant;
       int lasti = i;
       while(courant != debutcyclecourant && ! vector_contains(alreadyseen, courant)) {
-          alreadyseen.push_back(courant);
+          if(courant != 0) alreadyseen.push_back(courant);
           tempvecint.push_back(courant);
           if(display_debug_undirected) cout << "\t -> " << courant << "\td="<< G->get_node_by_id_startat0(courant)->VRP_demand << endl;
           int newcourant;
           //on commence par regarder si il y a au moins 2 edges avec le sommet courrant (un de chaque coté)
           int counterfound= vectorpairintcount(sol,courant);
-          cout << "val "<<courant<<" found "<<counterfound<<" times"<<endl;
+          //cout << "val "<<courant<<" found "<<counterfound<<" times"<<endl;
           if(counterfound >= 2) { // cycle de au moins 2+ sommets
             std::pair<int,int> found = vectorpairintfind(sol, courant,lasti);
             newcourant = found.first;
@@ -159,7 +159,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
           //cout <<" alreadyseen.size() = " << alreadyseen.size() << endl; 
           //cout << "alreadyseen = " << vectorint_tostring(alreadyseen) << endl; //segfault but why ?
 
-          cout << courant << " to " << newcourant << endl;
+          if(display_debug_undirected)cout << courant << " to " << newcourant << endl;
           courant = newcourant;
       }
       if(display_debug_undirected) cout << "\t -> 0"<< endl;
@@ -183,7 +183,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
   cout << "\t total_cost = " << G->get_VRP_cost_notalwaysfromDepot(*tournees) << endl;
 
 
-
+/*
   //on a toutes les tournées, on les parcours
   for(int i = 0; i < tournees->size(); i++) {
     vector<int> vectortournee = tournees->at(i);
@@ -193,12 +193,17 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
         IloExpr expr(env);
         for(int i=1; i<G->nb_nodes;i++){
           for(int j=0; j<G->nb_nodes;j++){
-            if(i < j && vector_contains(vectortournee, i) && ! vector_contains(vectortournee, j))
-            {
-              expr+=x[i][j];
-            }
+              if(vector_contains(vectortournee, i) && ! vector_contains(vectortournee, j)
+                ||vector_contains(vectortournee, j) && ! vector_contains(vectortournee, i)){
+                  if(i < j) {
+                    expr+=x[i][j];
+                  } else if(j < i ) {
+                   // expr+=x[j][i];
+                  }
+              }
           }
         }
+        
         //cout << expr << endl;
 
         IloRange newCte = IloRange(expr >= (int)((2*tourneedemand/G->VRP_capacity)+0.999));
@@ -208,7 +213,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
         cout << "valeur capcité violant contrainte : " << tourneedemand << " de "<< vectortournee.size()<<" sommets"<< endl;
     }
   }
-
+*/
 
 /*
 	//mirror solution to construct graph
@@ -267,7 +272,7 @@ ILOUSERCUTCALLBACK2(UsercutCoupeMinSeparation,
     L_ViolatedCst.pop_front();
   }
 }
-
+#define OUTPUT
 // LAZY CUTS AVEC LES INEGALITES DE CAPACITE
 ILOLAZYCONSTRAINTCALLBACK2(LazycutCapacitySeparation,
          C_Graph*, G,
@@ -287,7 +292,7 @@ ILOLAZYCONSTRAINTCALLBACK2(LazycutCapacitySeparation,
   for (int i=0;i<G->nb_nodes;i++) {
       for (int j=0;j<G->nb_nodes;j++) {
         if(i < j) {
-          //cout << i << "   "<<j << "   " <<getValue(x[i][j]) << endl;
+          if(getValue(x[i][j]) > 0 ) cout <<" getValue  "<< i << "   "<<j << "   " <<getValue(x[i][j]) << endl;
           sol[i][j]= getValue(x[i][j]);
         }
       }
@@ -672,12 +677,14 @@ void optimize_undirected(vector<vector<int>> *tournees, C_Graph* G, string filen
   IloExpr c3(env);
   for (j=1; j < G->nb_nodes; j++){
     c3 += x[0][j] ;
-	//c3 += x[j][0] ;
-}
+    //cout << ">>> " << 0 << "  " << j << endl; 
+	  //c3 += x[j][0] ;
+  }
+  cout << " == "  << 2*m << endl;
   CC.add(c3 == 2*m);
   ostringstream nomcst;
   nomcst.str("");
-  nomcst<<"CstMax_from_depot";
+  //nomcst<<"CstMax_from_depot";
   cout << nomcst.str() << endl;
   CC[nbcst].setName(nomcst.str().c_str());
   nbcst++;
@@ -696,15 +703,17 @@ void optimize_undirected(vector<vector<int>> *tournees, C_Graph* G, string filen
   nbcst++;
   */
 
-  for (i=1; i < G->nb_nodes; i++){ // ∀i ∈ NC
+  for (i=1; i < G->nb_nodes-1; i++){ // ∀i ∈ NC
     IloExpr c2(env);
     for (j=0; j < G->nb_nodes; j++){
       if(i < j) {
+        //cout << " >>> "<< i << " " << j << endl;
         c2+=x[i][j];
       }
-      else if(i != j){
-		c2+=x[j][i];
-	  }
+      else if(j < i){
+        //cout << " >>> "<< j << " " << i << endl;
+  	   	c2+=x[j][i];
+  	  }
     }
     CC.add(c2==2);
     ostringstream nomcst;
@@ -792,6 +801,8 @@ void optimize_undirected(vector<vector<int>> *tournees, C_Graph* G, string filen
 
 	
 	//cout << CC << endl; //print all constraints
+
+
 	
 	IloCplex cplex(model);
   
