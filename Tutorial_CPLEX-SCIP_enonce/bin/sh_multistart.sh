@@ -2,7 +2,9 @@
 
 for i in  ../Instances/BinPacking_Projet/*.vrp
 do
-echo \n starting instance $i ... \n
+echo ""
+echo " starting instance $i ..."
+echo ""
 echo `./CompactMIP_BinPacking_Projet $i`
 done
 
