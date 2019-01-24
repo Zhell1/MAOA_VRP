@@ -265,8 +265,9 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
         }
       }
       //cout << "partiesup("<<(float)tourneedemand/(float)G->VRP_capacity<<") = "<<(int)( ((float)tourneedemand/(float)G->VRP_capacity)+0.999)<< endl;
-      int constraintval = 2.0*( (int)( ((float)tourneedemand/(float)G->VRP_capacity)+0.999)  );
-     // cout << "testing capacity constraint, tournée #"<<i<<" : "<< sumofS << " >= " << constraintval << " ?" <<endl;
+
+      int constraintval = 2.0 * (int)( std::ceil((double)tourneedemand/(double)G->VRP_capacity) );
+      //cout << "testing capacity constraint, tournée #"<<i<<" : "<< sumofS << " >= " << constraintval << " ?" <<endl;
 
       if (sumofS < constraintval) {
          // contrainte de capacité violée donc on l'ajoute
@@ -323,7 +324,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
 	
 	find_ViolatedCoupeMinCst(env,G,x,fracsol,L_ViolatedCst);
   */
-}
+
 
 // USER CUTS AVEC LES INEGALITES DE COUPES MINCUT
 ILOUSERCUTCALLBACK2(UsercutCoupeMinSeparation,
@@ -977,15 +978,13 @@ void optimize_undirected(vector<vector<int>> *tournees, C_Graph* G, string filen
 	// cplex.setParam(IloCplex::ClockType,1);
 	// cplex.setParam(IloCplex::RINSHeur,-1);
 
-
-	string sortielp = /*filename+*/"sortie.lp";
-	cplex.exportModel(sortielp.c_str());
-
 	if ( !cplex.solve() ) {
 		env.error() << "Failed to optimize LP" << endl;
 		exit(1);
 	}
 
+	string sortielp = /*filename+*/"sortie.lp";
+	cplex.exportModel(sortielp.c_str());
 
 	env.out() << "Solution status = " << cplex.getStatus() << endl;
 	env.out() << "Solution value  = " << cplex.getObjValue() << endl;
