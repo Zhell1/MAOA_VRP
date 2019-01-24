@@ -958,6 +958,8 @@ void optimize_undirected(vector<vector<int>> *tournees, C_Graph* G, string filen
 	
 	IloCplex cplex(model);
   
+	cplex.setParam(IloCplex::TiLim, CPX_PARAM_TILIM);
+	
 	IloNum start;
 	start=cplex.getTime();
 	
