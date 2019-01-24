@@ -2,11 +2,8 @@
 set terminal jpeg
 set output "time.jpg"
 set title ' Temps de chaque instance '
-set xlabel ' Instance'
+set xlabel ' Instance '
 set ylabel ' Temps '
-set xdata time
-set timefmt "%Y-%m-%d"
-set xtics format "%d-%m"
-set style fill transparent solid 0.5 noborder
-plot "time.dat" using 1:3 with boxes,\
-     "time.dat" using 1:4 with boxes lc rgb"green"
+set style fill solid 0.5 noborder
+plot "time.dat" using 0:2 with boxes,\
+     "time.dat" using 0:3 with boxes lc rgb"blue"
