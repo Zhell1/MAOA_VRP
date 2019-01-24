@@ -324,7 +324,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
 	
 	find_ViolatedCoupeMinCst(env,G,x,fracsol,L_ViolatedCst);
   */
-
+}
 
 // USER CUTS AVEC LES INEGALITES DE COUPES MINCUT
 ILOUSERCUTCALLBACK2(UsercutCoupeMinSeparation,
