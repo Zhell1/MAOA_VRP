@@ -8,10 +8,13 @@
 #
 #------------------------------------------------------------
 
-#CPLEXDIR      = $(PATHTUTOMIP)/cplex-12.7.1/cplex
-#CONCERTDIR    = $(PATHTUTOMIP)/cplex-12.7.1/concert
-CPLEXDIR      = $(PATHTUTOMIP)/CPLEX_Studio128/cplex
-CONCERTDIR    = $(PATHTUTOMIP)/CPLEX_Studio128/concert
+#pour compiler à la fac
+CPLEXDIR      = $(PATHTUTOMIP)/cplex-12.7.1/cplex
+CONCERTDIR    = $(PATHTUTOMIP)/cplex-12.7.1/concert
+
+#pour compiler sur nos ordis persos
+#CPLEXDIR      = $(PATHTUTOMIP)/CPLEX_Studio128/cplex
+#CONCERTDIR    = $(PATHTUTOMIP)/CPLEX_Studio128/concert
 
 LEMONDIR      = $(PATHTUTOMIP)/lemon-1.3.1
 
