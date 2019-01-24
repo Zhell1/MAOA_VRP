@@ -15,6 +15,15 @@
 
 using namespace std;
 
+void write_results_to_file(string filename, double time, double value){
+	
+	ofstream myfile;
+	myfile.open (filename + ".result");
+	myfile << time << " " << value << endl;
+	myfile.close();
+	
+}
+
 string vectorint_tostring(vector<int> my_vector) {
 	if(my_vector.size()==0) {
 		return "";	

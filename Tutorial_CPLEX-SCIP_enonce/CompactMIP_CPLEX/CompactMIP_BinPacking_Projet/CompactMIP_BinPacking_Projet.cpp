@@ -17,6 +17,7 @@
 //void optimize_2opt_internalRoutes(vector<vector<int>> *tournees, C_Graph* G);
 //void optimize_2opt_switchRoutes(vector<vector<int>> *tournees, C_Graph* G);
 
+#define CPX_PARAM_TILIM 120
 
 #define epsilon 0.00001
 
@@ -266,7 +267,7 @@ void  find_ViolatedCapacityCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
       }
       //cout << "partiesup("<<(float)tourneedemand/(float)G->VRP_capacity<<") = "<<(int)( ((float)tourneedemand/(float)G->VRP_capacity)+0.999)<< endl;
 
-      int constraintval = 2.0 * (int)( std::ceil((double)tourneedemand/(double)G->VRP_capacity) );
+      int constraintval = 2 * (int)( std::ceil((double)tourneedemand/(double)G->VRP_capacity) );
       //cout << "testing capacity constraint, tournée #"<<i<<" : "<< sumofS << " >= " << constraintval << " ?" <<endl;
 
       if (sumofS < constraintval) {
@@ -655,6 +656,8 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 	
 	IloCplex cplex(model);
   
+	cplex.setParam(IloCplex::TiLim, CPX_PARAM_TILIM);
+	
   /// ADD SEPARATION CALLBACK
   //cplex.use(LazyCoupeMinSeparation(env,G,x)); // TODO
 
@@ -743,7 +746,7 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 
 
 //PLNE utilisant la formulation non dirigée
-void optimize_undirected(vector<vector<int>> *tournees, C_Graph* G, string filename){
+void optimize_undirected(vector<vector<int>> *tournees, C_Graph* G, string filename, double *sol_time, double * sol_value){
 	//m est le nombre de tournées
 	int m = tournees->size();
 	int Q = (*G).VRP_capacity; // capacité max des véhicules
@@ -955,6 +958,9 @@ void optimize_undirected(vector<vector<int>> *tournees, C_Graph* G, string filen
 	
 	IloCplex cplex(model);
   
+	IloNum start;
+	start=cplex.getTime();
+	
   /// ADD SEPARATION CALLBACK
 	
 	cplex.use(LazycutCapacitySeparation(env,G,x));
@@ -989,6 +995,8 @@ void optimize_undirected(vector<vector<int>> *tournees, C_Graph* G, string filen
 	env.out() << "Solution status = " << cplex.getStatus() << endl;
 	env.out() << "Solution value  = " << cplex.getObjValue() << endl;
 	
+	*sol_value = cplex.getObjValue();
+	*sol_time = cplex.getTime() - start;
 
   //affichage des w_i
   /*cout<<"---"<<endl;
@@ -1175,13 +1183,15 @@ int main (int argc, char**argv){
   cout<<endl; print_all_tournees(tournees, G);
   */
 
-  optimize_undirected(&tournees, G, filename);
+  double sol_time, sol_value;
+  optimize_undirected(&tournees, G, filename, &sol_time, &sol_value);
   //on affiche toutes les tournées et leurs couts:
   cout << "after undirected optimization : " << endl;
   cout<<endl; print_all_tournees(tournees, G);
   
   //write to svg
   write_solution_to_file(tournees, G, filename);
+  write_results_to_file(filename, sol_time, sol_value);
   
   return 0;
 }
