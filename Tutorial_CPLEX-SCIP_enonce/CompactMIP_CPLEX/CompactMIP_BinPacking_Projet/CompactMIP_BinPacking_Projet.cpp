@@ -8,6 +8,7 @@
 #include"../../Graph/Graph.h"
 #include "./VRPfileParser.h"
 #include "./solve_relaxedPLNE.h"
+#include "./mtz_plne.cpp"
 //mtz_plne.cpp contains the basic mtz without reinforcing
 #include "./VRPtools.h"
 //  string vectorint_tostring(vector<int> my_vector);
@@ -17,7 +18,7 @@
 //void optimize_2opt_internalRoutes(vector<vector<int>> *tournees, C_Graph* G);
 //void optimize_2opt_switchRoutes(vector<vector<int>> *tournees, C_Graph* G);
 
-#define CPX_PARAM_TILIM 120
+#define CPX_PARAM_TILIM 300
 
 #define epsilon 0.00001
 
@@ -69,7 +70,8 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
     for(int i=0; i<G->nb_nodes;i++){
       for(int j=0; j<G->nb_nodes;j++){
         //if(i is in listcut && j is not in listcut)
-        if(i < j && vector_contains(vectorcut, i) && ! vector_contains(vectorcut, j))
+        if(i < j && vector_contains(vectorcut, i) && ! vector_contains(vectorcut, j)
+              ||vector_contains(vectorcut, j) && ! vector_contains(vectorcut, i))
         {
           expr+=x[i][j];
         }
@@ -85,7 +87,8 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
     IloExpr expr2(env);
     for(int i=0; i<G->nb_nodes;i++){
       for(int j=0; j<G->nb_nodes;j++){
-        if(i < j && ! vector_contains(vectorcut, i) && vector_contains(vectorcut, j))
+        if(i < j && ! vector_contains(vectorcut, i) && vector_contains(vectorcut, j)
+              ||vector_contains(vectorcut, j) && ! vector_contains(vectorcut, i))
         {
           expr2+=x[i][j];
         }
@@ -96,6 +99,7 @@ void  find_ViolatedCoupeMinCst(IloEnv env, C_Graph* G,  vector<vector<IloNumVar>
     IloRange newCte2 = IloRange(expr2 >= 1);
     //cout << newCte << endl;
     L_ViolatedCst.push_back(newCte2);
+   // cout << "adding usercut constraint with mincut" << endl;
   }
 }
 
@@ -703,7 +707,7 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 
   // on enregistre tous les arcs du graphe dans sol
   // et on va aussi exporter la solution dans le pointeur d'entrée "tournees"
-  cout << "\n MTZ arcs in graph solution : " << endl;
+  //cout << "\n MTZ arcs in graph solution : " << endl;
 	list<pair<int,int>> sol; // marche pour tous
   map<int, int> solmap; // marche pour tous sauf le depot (car il y a plusieurs entrées avec le mm depot)
 	for(i=0; i < G->nb_nodes; i++) {
@@ -711,7 +715,7 @@ void optimizeMTZ(vector<vector<int>> *tournees, C_Graph* G, string filename){
 			if (i!=j && cplex.getValue(x[i][j])>1-epsilon) {
 				sol.push_back(make_pair(i,j));
         if(i != 0) solmap.insert(make_pair(i,j));
-        cout << "arc ("<<i<<","<<j<<")" << endl;
+        //cout << "arc ("<<i<<","<<j<<")" << endl;
       }
     }
   }
@@ -1009,13 +1013,13 @@ void optimize_undirected(vector<vector<int>> *tournees, C_Graph* G, string filen
   */
 
   //on va aussi exporter la solution dans le pointeur d'entrée "tournees"
-  cout << "\n edges in undirected graph solution : " << endl;
+  //cout << "\n edges in undirected graph solution : " << endl;
 	vector<pair<int,int>> sol; // marche pour tous
 	for(i=0; i < G->nb_nodes; i++) {
 		for (j=0; j < G->nb_nodes;j++) {
 			if (i<j && cplex.getValue(x[i][j])>1-epsilon) {
 				sol.push_back(make_pair(i,j));
-        cout << "edge ("<<i<<","<<j<<")" << endl;
+        //cout << "edge ("<<i<<","<<j<<")" << endl;
       }
     }
   }
@@ -1095,36 +1099,16 @@ int main (int argc, char**argv){
   //C_node* cnode  = (*G).get_node_by_id_startat1(1);   //example
   int capaciteQ = (*G).VRP_capacity; // capacité max des véhicules
 
-  //on solve par PLNE après avoir relaxé la contrainte de m tournées
-  int nb_box_used = solve_relaxedPLNE(G, filename, &solution_vec, relaxedPLNE_activateprint, relaxedPLNE_activateoutput); //last paramter is write_outputs?, befre-last is print?
+  int nb_box_used;
 
-  cout << endl;
-  //print solution found by relaxed PLNE
-  cout << "NB BOXES USED : " << nb_box_used << endl;
-  cout << "SOLUTION : ";
-  for(int i = 0; i < solution_vec.size(); i++)
-        cout << solution_vec.at(i) << " " ;
-  cout << endl;
-  // remarque : la solution trouvée ne contient que des valeurs qui se suivent à partir de 1 : 1,2,3,4,5...
-
-  /////////////////////////////////////////////////////////////////////////////////////
-  //////////////// métaheuristique itérative par voisinage ////////////////////////////
-  /////////////////////////////////////////////////////////////////////////////////////
-  /*
-    A l’issue d’une étape initiale, on obtient une solution réalisable.
-    Une métaheuristique itérative peut alors être utilisée sur la base de plusieurs voisinages:
-    - les voisinages classiques du TSP (2-opt) pour améliorer chaque tournée indépendemment.
-    - la possiblité pour un client de changer de tournées
-    - supprimer une tournée vide
-    - éventuellement ajouter une tournée vide 
-    OBj: minimiser la somme toale des couts des arcs utilisés (sous contrainte de capacité des véhicules)
-    rmq: on peut décrire une tournée par une liste de sommets (i0, i1, ...ip) comme le graphe est complet.
-         tous les circuits commencent par le sommet 0 et finissent au sommet 0
-    TODO: -> peut-être ajouter métaheuristique en ajoutant une tournée vide au début qu'on supprime ensuite ?-> testé mais change rien ?
-  */
-  //création du vecteur de vecteurs contenant toutes les tournées (sans le sommet 0):
   vector<vector<int>> tournees;
+  vector<vector<int>> best_tournees; //only used when we run it several time if it is too fast
+
+   //on solve par PLNE après avoir relaxé la contrainte de m tournées
+   nb_box_used = solve_relaxedPLNE(G, filename, &solution_vec, relaxedPLNE_activateprint, relaxedPLNE_activateoutput); //last paramter is write_outputs?, befre-last is print?
+
   //pour chacune des tournées
+  tournees.clear();
   for(int i = 0; i < nb_box_used; i++) {
       vector<int> curr_tournee;
       //on lit tout le vecteur solution
@@ -1138,62 +1122,138 @@ int main (int argc, char**argv){
       tournees.push_back(curr_tournee);
   }
   std::random_shuffle(tournees.begin(), tournees.end());//shuffle optimise bcp la vitesse moyenne !
-  //test : ajout d'une tournée vide
-  //vector<int> tournee_vide;
-  //tournees.push_back(tournee_vide);
 
-  //on affiche toutes les tournées et leurs couts:
-  cout<<endl; print_all_tournees(tournees, G);
+    cout << endl;
+  //print solution found by relaxed PLNE
+  cout << "NB BOXES USED : " << nb_box_used << endl;
+  cout << "SOLUTION : ";
+  for(int i = 0; i < solution_vec.size(); i++)
+        cout << solution_vec.at(i) << " " ;
+  cout << endl;
+  // remarque : la solution trouvée ne contient que des valeurs qui se suivent à partir de 1 : 1,2,3,4,5...
 
-  float previous_best_VRPcost = G->get_VRP_cost(tournees);
-  float current_best_VRPcost  = G->get_VRP_cost(tournees);
-
-  //TODO a decommenter une fois qu'on a finit de tester MTZ
+  //resolution heuristique 2opt
   /*
+  // let it run at least X sec if result found too fast (=relaunch)
+  int nbsecmin = 2; //use 0 to launch only once
+  int starttime = std::time(nullptr);
+  
+  int elapsed_time = std::time(nullptr) - starttime;
+  float all_best_VRPcost = INT_MAX;
+  int count = 0;
+  while(elapsed_time < nbsecmin || count == 0) { //lance au moins 1 fois
+    count ++;
+    ///////////////////////////
+      //on solve par PLNE après avoir relaxé la contrainte de m tournées
+        nb_box_used = solve_relaxedPLNE(G, filename, &solution_vec, relaxedPLNE_activateprint, relaxedPLNE_activateoutput); //last paramter is write_outputs?, befre-last is print?
+
+
+        /////////////////////////////////////////////////////////////////////////////////////
+        //////////////// métaheuristique itérative par voisinage ////////////////////////////
+        /////////////////////////////////////////////////////////////////////////////////////
+        //
+        //  A l’issue d’une étape initiale, on obtient une solution réalisable.
+        //  Une métaheuristique itérative peut alors être utilisée sur la base de plusieurs voisinages:
+        //  - les voisinages classiques du TSP (2-opt) pour améliorer chaque tournée indépendemment.
+        //  - la possiblité pour un client de changer de tournées
+        //  - supprimer une tournée vide
+        //  - éventuellement ajouter une tournée vide 
+        //  OBj: minimiser la somme toale des couts des arcs utilisés (sous contrainte de capacité des véhicules)
+        //  rmq: on peut décrire une tournée par une liste de sommets (i0, i1, ...ip) comme le graphe est complet.
+        //       tous les circuits commencent par le sommet 0 et finissent au sommet 0
+        //  TODO: -> peut-être ajouter métaheuristique en ajoutant une tournée vide au début qu'on supprime ensuite ?-> testé mais change rien ?
+        //
+        //création du vecteur de vecteurs contenant toutes les tournées (sans le sommet 0):
+        //pour chacune des tournées
+        tournees.clear();
+        for(int i = 0; i < nb_box_used; i++) {
+            vector<int> curr_tournee;
+            //on lit tout le vecteur solution
+            for(int j = 0; j < solution_vec.size(); j++){
+                //on extrait les sommets de la tournée à enregistrer
+                if(solution_vec.at(j) == i+1) {
+                    curr_tournee.push_back(j+1); //+1 pour commencer à 1 au lieu de 0
+                }
+            }
+            std::random_shuffle ( curr_tournee.begin(), curr_tournee.end() );  //shuffle optimise bcp la vitesse moyenne !
+            tournees.push_back(curr_tournee);
+        }
+        std::random_shuffle(tournees.begin(), tournees.end());//shuffle optimise bcp la vitesse moyenne !
+        //test : ajout d'une tournée vide
+        //vector<int> tournee_vide;
+        //tournees.push_back(tournee_vide);
+
+        //on affiche toutes les tournées et leurs couts:
+        cout<<endl; print_all_tournees(tournees, G);
+
+        float previous_best_VRPcost = G->get_VRP_cost(tournees);
+        float current_best_VRPcost  = G->get_VRP_cost(tournees);
+    ////////////////////////////
+
     int nb_stagnations = 0; // use 10 for a pretty exhaustive search
+    //tant qu'on arrive à améliorer par 2opt on continue (jusqu'à avoir stagné nb_stagnations fois)
 
-  //tant qu'on arrive à améliorer par 2opt on continue (jusqu'à avoir stagné nb_stagnations fois)
-  do {
-    if(previous_best_VRPcost <= current_best_VRPcost) nb_stagnations++;
-    else nb_stagnations = 0;
+    do {
+      if(previous_best_VRPcost <= current_best_VRPcost) nb_stagnations++;
+      else nb_stagnations = 0;
 
-    //voisinage 2opt pour optimiser chaque tournée indépendament
-    optimize_2opt_internalRoutes(&tournees, G);
-    print_all_tournees(tournees, G);
+      //voisinage 2opt pour optimiser chaque tournée indépendament
+      optimize_2opt_internalRoutes(&tournees, G);
+     // print_all_tournees(tournees, G);
 
-    //voisinage 2opt pour optimiser entre les tournées
-    optimize_2opt_switchRoutes(&tournees, G);
-    print_all_tournees(tournees, G);
+      //voisinage 2opt pour optimiser entre les tournées
+      optimize_2opt_switchRoutes(&tournees, G);
+      //print_all_tournees(tournees, G);
 
-    //MAJ les valeurs
-    previous_best_VRPcost = current_best_VRPcost;
-    current_best_VRPcost = G->get_VRP_cost(tournees);
-  }while (nb_stagnations < 10);		// si on voit que 10x de suite on à le même cout on arrête  
+      //MAJ les valeurs
+      previous_best_VRPcost = current_best_VRPcost;
+      current_best_VRPcost = G->get_VRP_cost(tournees);
+    }while (nb_stagnations < 10);		// si on voit que 10x de suite on à le même cout on arrête 
+
+    if(current_best_VRPcost < all_best_VRPcost) {
+      cout << "new best solution found of cost " <<current_best_VRPcost  << endl;
+      all_best_VRPcost = current_best_VRPcost; //maj val
+      //on copie les tournées dans best_tournees
+      best_tournees.clear();
+      for(int i =0; i < tournees.size(); i++){
+          vector<int> curr_tournee;
+          //on lit tout le vecteur solution
+          for(int j = 0; j < tournees[i].size(); j++){
+              curr_tournee.push_back(tournees[i][j]);
+          }
+          best_tournees.push_back(curr_tournee);
+      }
+    }
+    elapsed_time = std::time(nullptr) - starttime; 
+    cout << "ELAPSED TIME = "<<elapsed_time<<" SECONDS / "<<nbsecmin << endl;
+
+  } // while timer
 
   //on affiche toutes les tournées et leurs couts:
-  cout << "after 2opt optimization : " << endl;
+  cout << "after 2opt optimization (did "<<count<<" iterations): " << endl;
   
-  cout<<endl; print_all_tournees(tournees, G);
-  */
+  cout<<endl; print_all_tournees(best_tournees, G);
+  //*/ // FIN HEURISTIQUE
   
   ///////////////////////////////////////////////////////////////////////////////////// fin métaheuristique itérative par voisinage
   
   /*
-  optimizeMTZ(&tournees, G, filename);
+  //optimizeMTZ_withsymmetry(&tournees, G, filename); // without any CUTS
+  optimizeMTZ(&tournees, G, filename); //reinforced with CUTS
   //on affiche toutes les tournées et leurs couts:
   cout << "after MTZ optimization : " << endl;
   cout<<endl; print_all_tournees(tournees, G);
-  */
-
+  //*/
+  ///*
   double sol_time, sol_value;
   optimize_undirected(&tournees, G, filename, &sol_time, &sol_value);
   //on affiche toutes les tournées et leurs couts:
   cout << "after undirected optimization : " << endl;
   cout<<endl; print_all_tournees(tournees, G);
-  
+  write_results_to_file(filename, sol_time, sol_value);
+  //*/
   //write to svg
   write_solution_to_file(tournees, G, filename);
-  write_results_to_file(filename, sol_time, sol_value);
   
   return 0;
 }

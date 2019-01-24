@@ -419,7 +419,7 @@ void C_Graph::write_dot_G_color(string InstanceName, vector<int>& coloring){
 
 }
 
-
+// THOMAS ADDED
 void C_Graph::write_dot_G_color_svg(string InstanceName, vector<int>& coloring){
   int i,k;
   ostringstream FileName; 

@@ -21,12 +21,14 @@
 
 using namespace std;
 
+bool shuffling_active = true;
+
 void optimize_2opt_internalRoutes(vector<vector<int>> *tournees, C_Graph* G) {
    //voisinage 2opt pour optimiser chaque tournée indépendament
   cout << endl <<  "*** starting 2opt optimization of internal routes ***"<< endl;
 
   bool print_alldebug_2opt = false;
-  bool print_shortdebug = true; //prints less stuff
+  bool print_shortdebug = false; //prints less stuff
 
   int nb_box_used = tournees->size();
   //on parcours toutes les tournées une par une : 
@@ -85,7 +87,7 @@ void optimize_2opt_internalRoutes(vector<vector<int>> *tournees, C_Graph* G) {
         }
       }
     }
-    cout << "\ttournee #"<<ibox<<"  cost : "<< initial_cost <<" -> " << G->get_route_cost(*tournee) << endl; 
+    if(print_alldebug_2opt || print_shortdebug) cout << "\ttournee #"<<ibox<<"  cost : "<< initial_cost <<" -> " << G->get_route_cost(*tournee) << endl; 
   }
 }
 
@@ -94,21 +96,21 @@ void optimize_2opt_switchRoutes(vector<vector<int>> *tournees, C_Graph* G) {
   cout << endl <<  "*** starting 2opt optimization : agent switching routes ***"<< endl;
 
   //////////// PARAMETERS ///////////
-  bool print_alldebug_2opt = true;
+  bool print_alldebug_2opt = false;
   float percent_threshold = 0.0; // only improve if it's more than for ex 1% (use 0.01) OR use 0 to improve ALL the time
   float threshold_leaving = 0.01; // 0.01% chance of leaving the function (avoid it running too long for huge instances)
   ///////////////////////////////////
   // pour rendre la fonction moins biaisée sur le fait de ne déplacer que les premiers éléments des premieres tournées
   // -> faire un shuffle des tournées aléatoire au début de la fonction
   // -> ce shuffle est plutôt bénéfique sur les grandes instances et en général, mais peu donner de moins bonnes solutions sur de petites instances si on à pas de chance
-  std::random_shuffle ( tournees->begin(), tournees->end() ); // OK VERIFIE
+  if(shuffling_active) std::random_shuffle ( tournees->begin(), tournees->end() ); // OK VERIFIE
 
   int nb_box_used = tournees->size();
   int capaciteQ = (*G).VRP_capacity; // capacité max des véhicules
   //if(print_alldebug_2opt) print_all_tournees(*tournees, G);
   bool amelioration = true; // mettre dans toutes les boucles for un && !amelioration pour s'arreter dès la 1ere trouvée
   while(amelioration) {
-    std::random_shuffle ( tournees->begin(), tournees->end() ); // OK VERIFIE
+    if(shuffling_active) std::random_shuffle ( tournees->begin(), tournees->end() ); // OK VERIFIE
     amelioration = false;
     //pour chaque tournée
     float init_total_cost = G->get_VRP_cost(*tournees);
