@@ -1,9 +1,11 @@
  
 set terminal jpeg
 set output "time.jpg"
-set title ' Temps de chaque instance '
+set title ' Temps et optimum de chaque instance '
 set xlabel ' Instance '
 set ylabel ' Temps '
-set style fill solid 0.5 noborder
-plot "time.dat" using 0:2 with boxes,\
-     "time.dat" using 0:3 with boxes lc rgb"blue"
+set y2label ' % optimum '
+set y2range [0:100]
+set style fill transparent solid 0.5 noborder
+plot "time.dat" using 0:2 notitle with boxes,\
+	 "time.dat" using 0:3 notitle with boxes
