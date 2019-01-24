@@ -106,8 +106,6 @@ float C_Graph::get_route_cost_notalwaysfromDepot(vector<int> route) {
       cost += get_node_by_id_startat0(route.at(i))->getDistanceFrom_startat0(route.at(i+1));
       //cout << "("<<route.at(i)<<"->"<<route.at(i+1)<<") ";
   }
-  //now we need to add the last cost to close the cycle => from 0 to size-1
-  cost += get_node_by_id_startat0(route.at(0))->getDistanceFrom_startat0(route.at(route.size()-1));
   //cout << "("<<route.at(route.size()-1)<<"->"<< route.at(0)<<")" << endl;
   // retourne la cout total
   return cost;

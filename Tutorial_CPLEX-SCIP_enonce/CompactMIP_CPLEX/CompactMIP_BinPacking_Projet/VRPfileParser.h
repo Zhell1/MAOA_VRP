@@ -130,6 +130,7 @@ C_Graph* parseVRPfile(string filename, bool activateprint)
 			else {
 				sstream >> mygraph->get_node_by_id_startat0(id)->x;	//x
 				sstream >> mygraph->get_node_by_id_startat0(id)->y;	//y
+
 				if(activateprint) cout << "lecture coordonnée : noeud " << id << " at (" << mygraph->get_node_by_id_startat0(id)->x << ", " << mygraph->get_node_by_id_startat0(id)->y << ")" << endl;
 
 				if (id == mygraph->nb_nodes-1) {
@@ -217,6 +218,6 @@ C_Graph* parseVRPfile(string filename, bool activateprint)
 
 //calcule la distance euclidienne dans un monde en 2D
 float EUC_2D (int x1, int y1, int x2, int y2){
-	return sqrt((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2)); //this is faster than pow(a,b)
+	return round( sqrt((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2))); //this is faster than pow(a,b)
 }
 #endif

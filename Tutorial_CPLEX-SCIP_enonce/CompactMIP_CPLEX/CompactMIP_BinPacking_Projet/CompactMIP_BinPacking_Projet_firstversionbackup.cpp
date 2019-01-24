@@ -30,7 +30,7 @@ plus grand de tourn´ees; puis en confiant l’objectif de r´eduire le nombre d
 
 ///////////////////////////////
 ///////////////////////////////
-
+/*
 int main (int argc, char**argv){
 
   string name,nameext,nameextsol;
@@ -98,24 +98,24 @@ int main (int argc, char**argv){
   }
 
   //x_i_j € {0,1}
-  /*vector<vector<IloNumVar> > x;
-  x.resize(N-1); //don't use the depot
+//  vector<vector<IloNumVar> > x;
+//  x.resize(N-1); //don't use the depot
+//  
+//  for (i=1;i < N;i++)
+//    x[i-1].resize(N-1);
+//  
+//  for (i=1;i< N;i++){
+//    for (j=1;j< N;j++) {
+//      if (i!=j){
+//        x[i-1][j-1]=IloNumVar(env, 0.0, 1.0, ILOINT);
+//        ostringstream varname;
+//        varname.str("");
+//        varname<<"x_"<<i<<"_"<<j;
+//        x[i-1][j-1].setName(varname.str().c_str());
+//      }
+//    }
+//  }
   
-  for (i=1;i < N;i++)
-    x[i-1].resize(N-1);
-  
-  for (i=1;i< N;i++){
-    for (j=1;j< N;j++) {
-      if (i!=j){
-        x[i-1][j-1]=IloNumVar(env, 0.0, 1.0, ILOINT);
-        ostringstream varname;
-        varname.str("");
-        varname<<"x_"<<i<<"_"<<j;
-        x[i-1][j-1].setName(varname.str().c_str());
-      }
-    }
-  }
-  */
   //x_i_j € {0,1}
   vector<vector<IloNumVar> > x;
   x.resize(N); 
@@ -326,3 +326,4 @@ int main (int argc, char**argv){
 
   return 0;
 }
+*/

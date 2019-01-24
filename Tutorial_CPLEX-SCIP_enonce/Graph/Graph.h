@@ -108,7 +108,8 @@ public:
   float get_route_demand(vector<int> route);
   ///////////////////////////////
   //these are used when you want cycles that don't necessarily are from and to Depot
-  // in this case you MUST add the node 0 in the route vector
+  // in this case you MUST add the node 0 in the route vector at the begining AND the end !!
+  // for exemple a route would be : 0, 14, 24, 0
   float get_route_cost_notalwaysfromDepot(vector<int> route);
   float get_VRP_cost_notalwaysfromDepot(vector<vector<int>> tournees);
   /************************************/
