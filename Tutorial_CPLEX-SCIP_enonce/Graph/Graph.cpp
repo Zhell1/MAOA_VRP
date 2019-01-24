@@ -454,11 +454,23 @@ void C_Graph::write_dot_G_color_svg(string InstanceName, vector<int>& coloring){
   fic<<"graph G {"<<endl;
   
   for(i=0 ; i<nb_nodes ; i++){
-    fic<<"  "<<V_nodes[i].num<<"[shape = octagon, style = filled , fillcolor = "<<colors[(coloring[V_nodes[i].num]) % colors.size()]<<" ]"<<endl;
+    //fic<<"  "<<V_nodes[i].num<<"[shape = octagon, style = filled , fillcolor = "<<colors[(coloring[V_nodes[i].num]) % colors.size()]<<" ]"<<endl;
+    //thomas test de placement des noeuds
+    fic<<"  "<<V_nodes[i].num<<"[pos=\""<<V_nodes[i].x<<","<<V_nodes[i].y<<"!\", width=2, height=2, penwidth=2, style = filled , fillcolor = "<<colors[(coloring[V_nodes[i].num]) % colors.size()]<<" ]"<<endl;
+  
   }
   
   for(k=0 ; k<nb_links ; k++){
-      fic<<"  \""<<V_links[k]->v1<<"\"--\""<<V_links[k]->v2<<"\";"<<endl;
+      int v1 = V_links[k]->v1;
+      int v2 = V_links[k]->v2;
+      int colornumber;
+      if(v1==0)
+        colornumber = get_node_by_id_startat0(V_links[k]->v2)->num;
+      else if(v2==0)
+        colornumber = get_node_by_id_startat0(V_links[k]->v1)->num;
+      else
+        colornumber = get_node_by_id_startat0(V_links[k]->v1)->num;
+      fic<<"  \""<<V_links[k]->v1<<"\"--\""<<V_links[k]->v2<<"\"[penwidth=20,  color = "<<colors[(coloring[colornumber]) % colors.size()]<<"];"<<endl;
   }
   
   fic<<"}"<<endl;
@@ -467,7 +479,8 @@ void C_Graph::write_dot_G_color_svg(string InstanceName, vector<int>& coloring){
 
   ostringstream commande; 
   commande.str("");
-  commande<<GRAPHVIZ<<"dot -Tsvg -o "<<InstanceName.c_str() << "_G_color.svg "<< FileName.str().c_str()<<endl;
+  //commande<<GRAPHVIZ<<"dot -Tsvg -o "<<InstanceName.c_str() << "_G_color.svg "<< FileName.str().c_str()<<endl;
+  commande<<GRAPHVIZ<<"neato -Tsvg -o "<<InstanceName.c_str() << "_G_color.svg "<< FileName.str().c_str()<<endl;
   cout<<commande.str().c_str();
   if (system(commande.str().c_str())){cout<<"SVG generated successfully"<<endl;}
   
