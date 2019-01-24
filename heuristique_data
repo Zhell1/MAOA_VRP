@@ -1,0 +1,37 @@
+ la meilleure valeur connue à ce jour est 16212,82548
+
+sans shuffle
+31300 après 01h30
+
+mais avec shuffle 1x au début de la fonction switchRoutes() :
+
+7 minutes seulement un cout de 28000 ! 
+et en 10 minutes un cout de 25500
+et 20800 au bout de 20 minutes
+20108 à 25min
+et 19850 au bout de 30 minutes
+40 min = 19400
+45min = 19250
+50min = 19046
+1H = 18753
+
+en rajoutant un shuffle à chaque amélioration trouvée dans la fonction switchRoute() :
+
+ on atteint 28000 en 3 minutes seulement
+à 7 minutes on est à 2430
+au bout de 10 min on est à 22900
+à 15 min on est à 20950
+20 min = 20080
+25min = 19630
+30min = 19300
+40min = 18630
+45min = 18200
+50min=17800
+1H = 17300
+1H10 = 17014
+1H20 =  16807.5 
+
+qui est quasiment aussi bon que la meilleure solution connue à ce jour (notre solution est seulement 3.67% moins bonne)
+
+
+=> tracer le graphique avec les 3 courbes
