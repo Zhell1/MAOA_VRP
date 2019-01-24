@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <string.h>
 #include <sstream>
+#include <stdlib.h>     /* atof */
 
 #include <iostream>
 #include <fstream>
@@ -51,7 +52,6 @@ C_Graph* parseVRPfile(string filename, bool activateprint)
 
    C_Graph* mygraph = new C_Graph();
    mygraph->directed = false; //normalement à true mais les instances ont toutes des couts symmétriques
-
   if(activateprint) cout << "*** STARTS READING FILE : " << filename << std::endl;
 
    //ifstream inFile(filename, ios::in);
@@ -63,6 +63,59 @@ C_Graph* parseVRPfile(string filename, bool activateprint)
     }
     
 	char oneline[MAXLINE];
+
+	bool depotisinnodes = true;
+	vector<double> depotvals;
+
+	//////////////////////////////////////////////////////
+	//start by going at the end to check which kind of DEPOT_SECTION we have
+	bool readingdepotsection = false;
+	while(inFile) {
+		inFile.getline(oneline, sizeof(oneline));
+		std::stringstream sstream(oneline);
+		string word;
+		sstream >> word;
+		//cout << "word= "<< word << endl;
+		if(strstr(word.c_str(), "DEPOT_SECTION") != nullptr) { 
+			readingdepotsection = true;
+		}
+		else if(readingdepotsection){
+			if(strcmp(word.c_str(),"-1")==0) {
+				//cout << "END OF DEPOT_SECTION" << endl;
+				readingdepotsection = false;
+			} else {
+				//cout << "line = " << oneline << endl;
+				char * pch;
+				pch = strtok (oneline," ");
+				while (pch != NULL)
+				{
+					depotvals.push_back(atof(pch));
+					//cout << pch << endl;
+					pch = strtok (NULL, " ");
+				}
+				cout << "depot section data : "<< endl;
+				for (int i=0; i < depotvals.size(); i++) {
+					cout << i << "  -> "<<depotvals[i] << endl;
+				}
+				cout << "--------------" << endl;
+
+				if(depotvals.size() == 2) depotisinnodes = false;
+
+				readingdepotsection = false;
+			}
+		}
+	}
+	inFile.close();
+	//reopen the file
+	inFile.open(filename);
+    if(inFile.fail()) {
+    	cout << "ERROR FILE NOT FOUND !!!!" << endl;
+    	return nullptr;
+    }
+    if(depotisinnodes) cout << "DETECTED FILE WHERE DEPOT IS IN THE NODES" << endl;
+    else cout << "DETECTED FILE WHERE DEPOT IS OUTSIDE THE NODES" << endl;
+	//////////////////////////////////////////////////////
+	
 	bool reading_nodecoordsection = false;
 	bool reading_demandsection = false;
 
@@ -116,11 +169,16 @@ C_Graph* parseVRPfile(string filename, bool activateprint)
 		else if(strstr(word.c_str(), "NODE_COORD_SECTION") != nullptr) { // checks if S1 contains S2
 			reading_nodecoordsection = true;
 			if(activateprint) cout << "NODE_COORD_SECTION" << endl;
+			if(depotisinnodes==false) {
+				// we load the depot before reading the remaining nodes
+				mygraph->get_node_by_id_startat0(0)->x = depotvals[0];
+				mygraph->get_node_by_id_startat0(0)->y = depotvals[1];
+			}
 		}
 		else if (reading_nodecoordsection == true) {
 			int id = 0;
 			sstream >> id;	//id
-			id=id-1;
+			if(depotisinnodes) id=id-1;
 			//cout << "reading node id " << id << endl;
 			if(id < 0) { // problem, no id should be  < 0
 				reading_nodecoordsection = false;
@@ -143,11 +201,15 @@ C_Graph* parseVRPfile(string filename, bool activateprint)
 		else if(strstr(word.c_str(), "DEMAND_SECTION") != nullptr) { // checks if S1 contains S2
 			reading_demandsection = true;
 			if(activateprint) cout << "DEMAND_SECTION" << endl;
+			if(depotisinnodes==false) {
+				// we load the depot before reading the remaining nodes
+				mygraph->get_node_by_id_startat0(0)->VRP_demand = 0;
+			}
 		}
 		else if (reading_demandsection == true){
 			int id = 0;
 			sstream >> id;
-			id=id-1;
+			if(depotisinnodes) id=id-1;
 			if(id < 0) { // problem, no id should be < 0
 				reading_demandsection = false;
 			}
