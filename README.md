@@ -1,6 +1,6 @@
 # MAOA_VRP
 
-TODO:
+initialisation:
 
 définir le problème de sac-à-dos relâché :
 
