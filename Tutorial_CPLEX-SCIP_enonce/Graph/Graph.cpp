@@ -456,7 +456,7 @@ void C_Graph::write_dot_G_color_svg(string InstanceName, vector<int>& coloring){
   for(i=0 ; i<nb_nodes ; i++){
     //fic<<"  "<<V_nodes[i].num<<"[shape = octagon, style = filled , fillcolor = "<<colors[(coloring[V_nodes[i].num]) % colors.size()]<<" ]"<<endl;
     //thomas test de placement des noeuds
-    fic<<"  "<<V_nodes[i].num<<"[pos=\""<<V_nodes[i].x<<","<<V_nodes[i].y<<"!\", width=2, height=2, penwidth=2, style = filled , fillcolor = "<<colors[(coloring[V_nodes[i].num]) % colors.size()]<<" ]"<<endl;
+    fic<<"  "<<V_nodes[i].num<<"[pos=\""<<V_nodes[i].x<<","<<V_nodes[i].y<<"!\", width=1, height=1, penwidth=1, style = filled , fillcolor = "<<colors[(coloring[V_nodes[i].num]) % colors.size()]<<" ]"<<endl;
   
   }
   
@@ -470,7 +470,7 @@ void C_Graph::write_dot_G_color_svg(string InstanceName, vector<int>& coloring){
         colornumber = get_node_by_id_startat0(V_links[k]->v1)->num;
       else
         colornumber = get_node_by_id_startat0(V_links[k]->v1)->num;
-      fic<<"  \""<<V_links[k]->v1<<"\"--\""<<V_links[k]->v2<<"\"[penwidth=20,  color = "<<colors[(coloring[colornumber]) % colors.size()]<<"];"<<endl;
+      fic<<"  \""<<V_links[k]->v1<<"\"--\""<<V_links[k]->v2<<"\"[penwidth=10,  color = "<<colors[(coloring[colornumber]) % colors.size()]<<"];"<<endl;
   }
   
   fic<<"}"<<endl;

@@ -1133,7 +1133,7 @@ int main (int argc, char**argv){
   // remarque : la solution trouvée ne contient que des valeurs qui se suivent à partir de 1 : 1,2,3,4,5...
 
   //resolution heuristique 2opt
-  /*
+  ///*
   // let it run at least X sec if result found too fast (=relaunch)
   int nbsecmin = 2; //use 0 to launch only once
   int starttime = std::time(nullptr);
@@ -1244,7 +1244,7 @@ int main (int argc, char**argv){
   cout << "after MTZ optimization : " << endl;
   cout<<endl; print_all_tournees(tournees, G);
   //*/
-  ///*
+  /*
   double sol_time, sol_value;
   optimize_undirected(&tournees, G, filename, &sol_time, &sol_value);
   //on affiche toutes les tournées et leurs couts:
