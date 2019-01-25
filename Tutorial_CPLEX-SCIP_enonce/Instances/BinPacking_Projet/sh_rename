@@ -1,5 +1,0 @@
-for f in *.vrp; do
-  fnew=`echo $f | cut -d'\' -f 2`
-  mv $f $fnew
-  echo $fnew
-done
